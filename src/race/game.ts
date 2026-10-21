@@ -62,10 +62,9 @@ let introPlayed = false;
 
 // the coast road: gentle bends and hills (world units along the road)
 const ramp = (d: number) => Math.min(1, Math.max(0, (d - 20) / 60));
-const curveAt = (d: number) => ramp(d) * (1.6 * Math.sin(d * 0.042) + 0.7 * Math.sin(d * 0.097 + 1.3));
+const curveAt = (d: number) => ramp(d) * (1.1 * Math.sin(d * 0.03) + 0.35 * Math.sin(d * 0.071 + 1.3));
 const slopeAt = (d: number) => (curveAt(d + 0.5) - curveAt(d - 0.5)) / 1;
-const bendAt = (d: number) => (curveAt(d + 1) - 2 * curveAt(d) + curveAt(d - 1)) / 1;
-const hillAt = (d: number) => ramp(d) * (0.25 * Math.sin(d * 0.055 + 0.5) + 0.08 * Math.sin(d * 0.13));
+const hillAt = (d: number) => ramp(d) * (0.16 * Math.sin(d * 0.045 + 0.5) + 0.04 * Math.sin(d * 0.11));
 
 interface Gate {
   lane: number;
@@ -138,8 +137,33 @@ const shuffle = <T,>(a: T[]) => {
   return a;
 };
 
-const mix = (a: number[], b: number[], t: number) => `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(',')})`;
+const mixCache = new Map<string, string>();
+const mix = (a: number[], b: number[], t: number) => {
+  const q = Math.round(t * 20);
+  const key = `${a.join(',')}|${q}`;
+  let c = mixCache.get(key);
+  if (!c) {
+    c = `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * (q / 20))).join(',')})`;
+    mixCache.set(key, c);
+  }
+  return c;
+};
 const HAZE = [214, 230, 238];
+
+/** A soft round puff, drawn once and reused for every smoke particle. */
+function puffSprite(shade: number) {
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const g = c.getContext('2d')!;
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, `rgba(${shade},${shade},${shade},1)`);
+  r.addColorStop(1, `rgba(${shade},${shade},${shade},0)`);
+  g.fillStyle = r;
+  g.fillRect(0, 0, 64, 64);
+  return c;
+}
+const PUFF_LIGHT = puffSprite(238);
+const PUFF_DARK = puffSprite(170);
 
 export class RaceGame {
   private root: HTMLElement;
@@ -178,23 +202,22 @@ export class RaceGame {
   private boost = 0;
   private exhaustT = 0;
   private yaw = 0;
+  private view = 2; // index into CAR_VIEWS, changed with hysteresis so it never flickers
   private shake = 0;
   private susp = 0;
   private suspV = 0;
   private bumpT = 2;
-  private driftCool = 0;
   private hornCool = 0;
   // road shape around the car, refreshed every frame
   private cBase = 0;
   private cSlope = 0;
   private eBase = 0;
   private eSlope = 0;
-  private bend = 0;
   private time = 0;
   private last = 0;
   private raf = 0;
   private engine = new Engine();
-  private music = new Music('music/race');
+  private music = new Music('music/race', 0.6);
   private el: Record<string, HTMLElement> = {};
   private recent: string[] = [];
   private off: (() => void)[] = [];
@@ -675,7 +698,6 @@ export class RaceGame {
     this.cSlope = slopeAt(dc);
     this.eBase = hillAt(dc);
     this.eSlope = hillAt(dc + 0.5) - hillAt(dc - 0.5);
-    this.bend = bendAt(dc);
 
     this.carX += (this.lane - this.carX) * Math.min(1, dt * 4.2);
     this.camX = this.carX * 0.6;
@@ -684,27 +706,25 @@ export class RaceGame {
     if (this.phase === 'finish') this.brake = 0.6;
     this.brake = Math.max(0, this.brake - dt);
 
-    // body: steering + leaning into the bend, suspension spring with random road bumps
+    // body: the car only turns while it changes lane, then straightens; light suspension on road bumps
     const slip = this.lane - this.carX;
-    const into = this.bend * 28 * Math.min(1, this.speed / cruise);
-    this.yaw += (slip * 0.42 + into - this.yaw) * Math.min(1, dt * 8);
+    this.yaw += (slip * 0.42 - this.yaw) * Math.min(1, dt * 10);
+    const y = this.yaw;
+    const v = this.view;
+    if (v === 2) this.view = y < -0.09 ? 1 : y > 0.09 ? 3 : 2;
+    else if (v === 1) this.view = y < -0.24 ? 0 : y > -0.05 ? 2 : 1;
+    else if (v === 3) this.view = y > 0.24 ? 4 : y < 0.05 ? 2 : 3;
+    else if (v === 0) this.view = y > -0.18 ? 1 : 0;
+    else this.view = y < 0.18 ? 3 : 4;
     this.suspV += (-60 * this.susp - 7 * this.suspV) * dt;
     this.susp += this.suspV * dt;
     this.bumpT -= dt * (this.speed / cruise);
     if (this.bumpT <= 0 && this.speed > 1) {
       this.bumpT = 1.2 + Math.random() * 2.2;
-      this.suspV -= 2.5 + Math.random() * 2;
-      play('sfx/thump', 0.25);
+      this.suspV -= 1.2 + Math.random() * 1.2;
+      play('sfx/thump', 0.2);
     }
     if (Math.abs(slip) > 0.2 && this.speed > 1 && Math.random() < dt * 50) this.tyreSmoke(1, Math.sign(slip));
-    this.driftCool = Math.max(0, this.driftCool - dt);
-    if (Math.abs(into) > 0.12 && this.speed > cruise * 0.8) {
-      if (Math.random() < dt * 30) this.tyreSmoke(1, -Math.sign(into));
-      if (this.driftCool === 0 && Math.abs(into) > 0.17) {
-        this.driftCool = 4;
-        play('sfx/drift', 0.35);
-      }
-    }
     this.exhaustT -= dt;
     if (this.exhaustT <= 0 && this.speed > 0.3) {
       this.exhaustT = this.phase === 'intro' || this.boost > 0 ? 0.05 : 0.18;
@@ -718,6 +738,7 @@ export class RaceGame {
       f.life -= dt;
     }
     this.puffs = this.puffs.filter((f) => f.life > 0);
+    if (this.puffs.length > 90) this.puffs.splice(0, this.puffs.length - 90);
 
     if (this.wave && !this.wave.judged && this.phase === 'drive' && this.wave.zw - this.travel <= Z_CAR + 0.15) {
       this.wave.zw = this.travel + Z_CAR + 0.15;
@@ -864,7 +885,7 @@ export class RaceGame {
   // ---------- rendering ----------
 
   private resize() {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(1.5, window.devicePixelRatio || 1);
     this.W = this.root.clientWidth || window.innerWidth;
     this.H = this.root.clientHeight || window.innerHeight;
     this.canvas.width = Math.round(this.W * dpr);
@@ -895,15 +916,9 @@ export class RaceGame {
   }
 
   private draw() {
-    const { ctx, W, H } = this;
+    const { ctx } = this;
     ctx.save();
     if (this.shake > 0) ctx.translate(Math.sin(this.time * 70) * 8 * this.shake, Math.cos(this.time * 55) * 4 * this.shake);
-    if (!this.o.reducedMotion) {
-      // the horizon tilts a little in bends
-      ctx.translate(W / 2, H * 0.9);
-      ctx.rotate(-this.bend * 2.2);
-      ctx.translate(-W / 2, -H * 0.9);
-    }
     this.drawSky();
     this.drawGround();
 
@@ -947,7 +962,7 @@ export class RaceGame {
       const w = im.naturalWidth * sc;
       const h = im.naturalHeight * sc;
       // the backdrop slides as the road turns
-      const x = (W - w) / 2 - this.camX * 18 - Math.max(-1, Math.min(1, this.cSlope * 4)) * (w - W) * 0.45;
+      const x = (W - w) / 2 - this.camX * 18 - Math.max(-1, Math.min(1, this.cSlope * 3)) * (w - W) * 0.3;
       ctx.drawImage(im, x, this.horizon + 2 - h, w, h);
     }
   }
@@ -1161,32 +1176,26 @@ export class RaceGame {
   private drawPuffs() {
     const { ctx } = this;
     for (const f of this.puffs) {
-      const a = Math.max(0, f.life) * 0.65;
-      const g = ctx.createRadialGradient(f.x, f.y, 0, f.x, f.y, f.r);
-      g.addColorStop(0, `rgba(${f.shade}, ${f.shade}, ${f.shade}, ${a})`);
-      g.addColorStop(1, `rgba(${f.shade}, ${f.shade}, ${f.shade}, 0)`);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.globalAlpha = Math.min(1, Math.max(0, f.life) * 0.65);
+      ctx.drawImage(f.shade < 200 ? PUFF_DARK : PUFF_LIGHT, f.x - f.r, f.y - f.r, f.r * 2, f.r * 2);
     }
+    ctx.globalAlpha = 1;
   }
 
   private drawCar() {
     const { ctx } = this;
     const slip = this.lane - this.carX;
     // five real views of his Patrol, picked by how far the nose points left or right
-    const y = this.yaw;
-    const view = y < -0.2 ? 0 : y < -0.07 ? 1 : y <= 0.07 ? 2 : y <= 0.2 ? 3 : 4;
+    const view = this.view;
     const im = images.get(CAR_VIEWS[view]);
     if (!im?.complete || !im.naturalWidth) return;
     const p = this.proj(this.carX, Z_CAR);
     const hp = CAR_W * p.s * (this.H > this.W ? 0.98 : 0.8);
     const wp = (hp * im.naturalWidth) / im.naturalHeight;
     const moving = this.speed > 0.5 && !this.o.reducedMotion;
-    const rumble = moving ? Math.sin(this.time * 41) * 0.6 * (this.speed / SPEED[this.o.mode]) : 0;
-    const bounce = this.o.reducedMotion ? 0 : this.susp * 6;
-    const roll = this.o.reducedMotion ? 0 : -slip * 0.08 - this.bend * 1.5;
+    const rumble = moving ? Math.sin(this.time * 41) * 0.3 * (this.speed / SPEED[this.o.mode]) : 0;
+    const bounce = this.o.reducedMotion ? 0 : this.susp * 4;
+    const roll = this.o.reducedMotion ? 0 : -slip * 0.06;
     // squat on hard acceleration, nose dip on braking
     const squash = this.o.reducedMotion ? 1 : 1 - Math.min(0.04, this.boost * 0.04) + Math.min(0.03, this.brake * 0.02);
     ctx.save();

@@ -152,8 +152,8 @@ export class FishGame {
   private last = 0;
   private raf = 0;
   private paused = false;
-  private music = new Music('music/fish', 0.3);
-  private ocean = new Music('sfx/ocean', 0.22);
+  private music = new Music('music/fish', 0.55);
+  private ocean = new Music('sfx/ocean', 0.5);
   private el: Record<string, HTMLElement> = {};
   private off: (() => void)[] = [];
 

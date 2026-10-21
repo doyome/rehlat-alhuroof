@@ -61,7 +61,8 @@ export function play(key: string, gain = 1, rate = 1) {
     void load(key);
     return false;
   }
-  playBuffer(buf, gain, rate);
+  // effects step back while someone is speaking, so the letter is always the clearest sound
+  playBuffer(buf, voiceSrc ? gain * 0.35 : gain, rate);
   return true;
 }
 
@@ -79,7 +80,7 @@ export async function say(key: string, text: string): Promise<void> {
   voiceSrc?.stop();
   voiceSrc = null;
   if (buf) {
-    const src = playBuffer(buf, 1.15);
+    const src = playBuffer(buf, 1);
     voiceSrc = src;
     voiceListeners.forEach((f) => f(true));
     return new Promise((res) => {
@@ -220,11 +221,11 @@ export class Engine {
   private src?: AudioBufferSourceNode;
   private o?: OscillatorNode;
   private g?: GainNode;
-  private base = 0.3;
+  private base = 0.55;
   private revUntil = 0;
   private revAmt = 0;
   private speed = 0;
-  private offVoice = onVoice((speaking) => this.g?.gain.setTargetAtTime(speaking ? this.base * 0.4 : this.base, ac().currentTime, 0.15));
+  private offVoice = onVoice((speaking) => this.g?.gain.setTargetAtTime(speaking ? this.base * 0.25 : this.base, ac().currentTime, 0.1));
   start() {
     if (!settings.sfx || this.src || this.o) return;
     const a = ac();
@@ -294,7 +295,7 @@ export class Music {
     private base = 0.32,
   ) {}
   private target(speaking = false) {
-    return this.on && settings.music ? this.base * this.level * (speaking ? 0.45 : 1) : 0;
+    return this.on && settings.music ? this.base * this.level * (speaking ? 0.3 : 1) : 0;
   }
   start() {
     if (this.src) return;
