@@ -1,0 +1,770 @@
+/* ---------- «مصنع الكلمات» ----------
+   A cartoon factory drawn with CSS only: a tiled wall, a rounded machine with spinning gears,
+   pipes, a chimney and blinking lights, and a conveyor belt that carries the letter tiles.
+   Phone portrait stacks picture / machine / belt; wide screens put the picture beside the machine. */
+
+.factory {
+  --pic: clamp(92px, min(34vw, 17vh), 190px);
+  --slot: clamp(44px, min(13vw, 8vh), 84px);
+  --word: clamp(40px, min(13vw, 8vh), 92px);
+  --tile: clamp(62px, min(19vw, 10.5vh), 104px);
+  --prod: clamp(150px, min(56vw, 32vh), 300px);
+  --steel: #0d5f6b;
+}
+
+.factory .stage-area {
+  background-color: #ffe1a1;
+  background-image:
+    radial-gradient(ellipse 70% 45% at 50% 0%, rgba(255, 255, 255, 0.6), transparent 70%),
+    repeating-linear-gradient(0deg, rgba(170, 100, 40, 0.13) 0 3px, transparent 3px 48px),
+    repeating-linear-gradient(90deg, rgba(170, 100, 40, 0.09) 0 3px, transparent 3px 96px),
+    linear-gradient(180deg, #ffe9b8, #ffcf85);
+}
+
+.fac-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 118px 16px 0;
+  overflow: hidden;
+}
+
+.fac-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding-bottom: 18px;
+}
+
+/* ---------- the order: picture + speaker ---------- */
+
+.fac-order {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.fac-frame {
+  position: relative;
+  width: var(--pic);
+  height: var(--pic);
+  border-radius: 22px;
+  background: #fff;
+  border: 6px solid var(--gold);
+  box-shadow: 0 8px 18px rgba(120, 60, 0, 0.3), inset 0 0 0 3px #fff;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.fac-frame.in {
+  animation: fac-swing 0.7s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.fac-pic,
+.fac-prod-pic {
+  width: 100%;
+  height: 100%;
+}
+
+.fac-pic img,
+.fac-prod-pic img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  -webkit-user-drag: none;
+}
+
+.fac-fallback {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.9), transparent 45%),
+    linear-gradient(135deg, #ffd9ea, #d6efff 55%, #dff7d8);
+}
+
+.fac-fallback span {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--pic) * 0.27);
+  line-height: 1.6;
+  color: var(--teal);
+  direction: rtl;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #fff;
+}
+
+.fac-speak {
+  flex-shrink: 0;
+}
+
+/* ---------- the machine ---------- */
+
+/* decorations come before the body in the DOM, so the body paints over their inner ends */
+.fac-machine {
+  position: relative;
+  width: min(calc(100% - 40px), 620px);
+  flex-shrink: 0;
+}
+
+.fac-body {
+  position: relative;
+  border-radius: 34px 34px 24px 24px;
+  padding: 8px 16px 26px;
+  background:
+    radial-gradient(circle at 16px 16px, #0b4f59 0 4px, transparent 5px),
+    radial-gradient(circle at calc(100% - 16px) 16px, #0b4f59 0 4px, transparent 5px),
+    radial-gradient(circle at 16px calc(100% - 16px), #0b4f59 0 4px, transparent 5px),
+    radial-gradient(circle at calc(100% - 16px) calc(100% - 16px), #0b4f59 0 4px, transparent 5px),
+    linear-gradient(180deg, #62d6cd, #23a3ad 55%, #167a87);
+  border: 5px solid var(--steel);
+  box-shadow: inset 0 6px 0 rgba(255, 255, 255, 0.35), inset 0 -10px 0 rgba(0, 0, 0, 0.15), 0 14px 24px rgba(110, 55, 0, 0.3);
+}
+
+.fac-machine.working {
+  animation: fac-rumble 0.13s linear infinite;
+}
+
+.fac-head {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.fac-plate {
+  background: linear-gradient(180deg, #ffe58a, #f2b93b);
+  border: 3px solid #b77a12;
+  border-radius: 12px;
+  padding: 0 14px;
+  color: #6b3c00;
+  font-size: clamp(15px, 2.4vh, 22px);
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6);
+}
+
+.fac-lights {
+  display: flex;
+  gap: 7px;
+}
+
+.fac-lights i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(0, 0, 0, 0.25);
+  background: #ff5a5f;
+  box-shadow: 0 0 8px #ff5a5f;
+  animation: fac-blink 1.4s ease-in-out infinite;
+}
+
+.fac-lights i:nth-child(2) {
+  background: #ffd23f;
+  box-shadow: 0 0 8px #ffd23f;
+  animation-delay: 0.45s;
+}
+
+.fac-lights i:nth-child(3) {
+  background: #7cf06b;
+  box-shadow: 0 0 8px #7cf06b;
+  animation-delay: 0.9s;
+}
+
+.fac-machine.working .fac-lights i {
+  animation-duration: 0.35s;
+}
+
+.fac-gear {
+  position: absolute;
+  color: #f2c14e;
+  filter: drop-shadow(0 4px 4px rgba(0, 0, 0, 0.25));
+  animation: fac-spin 7s linear infinite;
+}
+
+.fac-gear svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fac-gear.g1 {
+  width: 78px;
+  height: 78px;
+  top: 12px;
+  right: -36px;
+}
+
+.fac-gear.g2 {
+  width: 58px;
+  height: 58px;
+  bottom: 18px;
+  left: -28px;
+  color: #ff9f43;
+  animation-direction: reverse;
+  animation-duration: 5s;
+}
+
+.fac-machine.working .fac-gear {
+  animation-duration: 0.7s;
+}
+
+.fac-pipe {
+  position: absolute;
+  top: 46%;
+  width: 70px;
+  height: 22px;
+  background: linear-gradient(180deg, #d9e2ea, #8d9aa8 60%, #6b7785);
+  border: 2px solid #56616e;
+}
+
+.fac-pipe.l {
+  left: -66px;
+  border-radius: 0 6px 6px 0;
+}
+
+.fac-pipe.r {
+  right: -66px;
+  top: 62%;
+  border-radius: 6px 0 0 6px;
+}
+
+.fac-chimney {
+  position: absolute;
+  top: -42px;
+  right: 9%;
+  width: 34px;
+  height: 50px;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(90deg, #6b7785, #b9c4cf 45%, #6b7785);
+  border: 3px solid #4a5560;
+}
+
+.fac-chimney i {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  width: 26px;
+  height: 26px;
+  margin-left: -13px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  opacity: 0;
+  animation: fac-puff 3s ease-out infinite;
+}
+
+.fac-chimney i:nth-child(2) {
+  animation-delay: 1s;
+}
+
+.fac-chimney i:nth-child(3) {
+  animation-delay: 2s;
+}
+
+.fac-machine.working .fac-chimney i {
+  animation-duration: 0.9s;
+}
+
+.fac-machine.working .fac-chimney i:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.fac-machine.working .fac-chimney i:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+/* the window: the word as one shaped string, the slots under it */
+.fac-window {
+  background: linear-gradient(180deg, #fffdf6, #fbefd2);
+  border: 4px solid var(--steel);
+  border-radius: 22px;
+  box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.12);
+  padding: 2px 12px 12px;
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.fac-word {
+  display: inline-grid;
+  direction: rtl;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: var(--word);
+  line-height: 1.45;
+  min-height: 1.45em;
+  color: var(--ink);
+}
+
+.fac-word > span {
+  grid-area: 1 / 1;
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.fac-word .ghost {
+  color: rgba(15, 107, 120, 0.24);
+}
+
+.fac-word.done .ink {
+  color: var(--teal);
+  display: inline-block;
+  animation: fac-word-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+
+.fac-slots {
+  display: flex;
+  direction: rtl;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.fac-slot {
+  width: var(--slot);
+  height: var(--slot);
+  border-radius: 14px;
+  border: 3px dashed #8fc3bf;
+  background: rgba(255, 255, 255, 0.75);
+  display: grid;
+  place-items: center;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--slot) * 0.58);
+  line-height: 1;
+  color: var(--ink);
+}
+
+.fac-slot span {
+  padding-bottom: 0.12em;
+}
+
+.fac-slot.model span {
+  color: rgba(15, 107, 120, 0.28);
+}
+
+.fac-slot.full {
+  border: 3px solid var(--gold);
+  background: #fff;
+  box-shadow: 0 3px 0 #e2c27a;
+}
+
+.fac-slot.given {
+  border-color: #b9d8d4;
+  background: #eef7f5;
+  box-shadow: none;
+  color: #47666b;
+}
+
+.fac-slot.land span {
+  display: inline-block;
+  animation: fac-land 0.45s 0.3s cubic-bezier(0.2, 1.5, 0.4, 1) backwards;
+}
+
+.fac-slot.next {
+  border-color: #ff8a00;
+  border-style: solid;
+  background: #fff4e3;
+  animation: fac-next 1.2s ease-in-out infinite;
+}
+
+.fac-hatch {
+  position: absolute;
+  left: 50%;
+  bottom: -16px;
+  width: 42%;
+  height: 26px;
+  transform: translateX(-50%);
+  border-radius: 0 0 18px 18px;
+  border: 4px solid var(--steel);
+  border-top: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.08) 0 10px, transparent 10px 20px),
+    linear-gradient(180deg, #123b44, #275e69);
+}
+
+.fac-machine.working .fac-hatch {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 210, 63, 0.35) 0 10px, transparent 10px 20px),
+    linear-gradient(180deg, #123b44, #275e69);
+}
+
+/* ---------- the conveyor belt ---------- */
+
+.fac-line {
+  position: relative;
+  flex-shrink: 0;
+  margin: 0 -16px;
+  padding: 18px 16px calc(34px + env(safe-area-inset-bottom));
+  background: repeating-linear-gradient(90deg, #3d4653 0 34px, #333b47 34px 68px);
+  background-size: 68px 100%;
+  box-shadow: inset 0 10px 14px rgba(0, 0, 0, 0.35);
+  animation: fac-belt 2.4s linear infinite;
+}
+
+.fac-line.run {
+  animation-duration: 0.45s;
+}
+
+.fac-line::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 9px;
+  background: repeating-linear-gradient(-45deg, #ffcc00 0 12px, #2b2b2b 12px 24px);
+}
+
+.fac-line::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: calc(24px + env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 20px 12px, #d4dce4 0 6px, #7a8796 7px 9px, transparent 10px) 0 0 / 40px 24px repeat-x,
+    linear-gradient(180deg, #2a313a, #1c2229);
+}
+
+.fac-tiles {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px 12px;
+  direction: rtl;
+  min-height: var(--tile);
+}
+
+.fac-tile {
+  --tc: #ff7a59;
+  --td: #c4492b;
+  position: relative;
+  width: var(--tile);
+  height: var(--tile);
+  padding: 0 0 0.14em;
+  border: 0;
+  border-top: 7px solid var(--tc);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fffdf6, #f6e3b8);
+  box-shadow: 0 6px 0 var(--td), 0 11px 16px rgba(0, 0, 0, 0.4);
+  display: grid;
+  place-items: center;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--tile) * 0.6);
+  line-height: 1;
+  color: var(--ink);
+  touch-action: none;
+  transition: opacity 0.2s, scale 0.2s;
+}
+
+.fac-tile.c1 {
+  --tc: #ffb627;
+  --td: #c27c00;
+}
+
+.fac-tile.c2 {
+  --tc: #4cc9f0;
+  --td: #1b86a8;
+}
+
+.fac-tile.c3 {
+  --tc: #8bd450;
+  --td: #4f8f22;
+}
+
+.fac-tile.c4 {
+  --tc: #b07cf7;
+  --td: #6f3fc0;
+}
+
+.fac-tile.c5 {
+  --tc: #ff6fae;
+  --td: #c13a78;
+}
+
+.fac-tile.arrive {
+  animation: fac-arrive 0.75s cubic-bezier(0.2, 1.15, 0.4, 1) backwards;
+  animation-delay: calc(var(--i) * 70ms);
+}
+
+.fac-tile.held {
+  filter: brightness(1.06);
+}
+
+.fac-tile.dragging {
+  z-index: 3;
+  box-shadow: 0 6px 0 var(--td), 0 22px 26px rgba(0, 0, 0, 0.45);
+}
+
+.fac-tile.used {
+  opacity: 0;
+  scale: 0.6;
+  pointer-events: none;
+}
+
+.fac-tile.shake {
+  animation: fac-shake 0.45s ease-in-out;
+}
+
+.fac-tile.glow {
+  animation: fac-glow 0.9s ease-in-out infinite alternate;
+}
+
+.fac-fly {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  margin: 0;
+}
+
+/* ---------- the product ---------- */
+
+.fac-product {
+  position: absolute;
+  z-index: 4;
+  width: var(--prod);
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.fac-prod-pic {
+  width: var(--prod);
+  height: var(--prod);
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff;
+  border: 7px solid var(--gold);
+  box-shadow: 0 0 0 8px rgba(255, 255, 255, 0.6), 0 18px 34px rgba(90, 40, 0, 0.4);
+}
+
+.fac-prod-pic .fac-fallback span {
+  font-size: calc(var(--prod) * 0.25);
+}
+
+.fac-prod-tag {
+  background: #fff;
+  border: 4px solid var(--gold);
+  border-radius: 999px;
+  padding: 0 22px;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--prod) * 0.17);
+  line-height: 1.55;
+  color: var(--teal);
+  direction: rtl;
+  white-space: nowrap;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* ---------- pause freezes the scene ---------- */
+
+.factory.paused .stage-area *,
+.factory.paused .stage-area *::before,
+.factory.paused .stage-area *::after {
+  animation-play-state: paused !important;
+}
+
+/* ---------- layouts ---------- */
+
+@media (max-height: 700px) and (orientation: portrait) {
+  .factory {
+    --pic: clamp(84px, 14vh, 150px);
+    --tile: clamp(56px, min(18vw, 9.5vh), 96px);
+  }
+  .fac-scene {
+    padding-top: 112px;
+  }
+  .fac-main {
+    gap: 8px;
+  }
+}
+
+/* wide screens: picture on the right (where reading starts), machine beside it, belt below */
+@media (min-aspect-ratio: 5/4) and (min-width: 700px) {
+  .factory {
+    --pic: clamp(120px, 26vh, 240px);
+    --slot: clamp(48px, 9vh, 88px);
+    --word: clamp(46px, 9vh, 96px);
+    --tile: clamp(64px, 11.5vh, 108px);
+    --prod: clamp(180px, 40vh, 320px);
+  }
+  .fac-scene {
+    padding-top: 116px;
+  }
+  .fac-main {
+    flex-direction: row;
+    gap: clamp(28px, 5vw, 70px);
+  }
+  .fac-order {
+    flex-direction: column;
+  }
+  .fac-machine {
+    width: min(58vw, 640px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fac-line,
+  .fac-gear,
+  .fac-machine.working,
+  .fac-lights i,
+  .fac-slot.next {
+    animation: none;
+  }
+}
+
+/* ---------- keyframes ---------- */
+
+@keyframes fac-belt {
+  to {
+    background-position: 68px 0;
+  }
+}
+
+@keyframes fac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fac-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes fac-puff {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.4);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-18px, -70px) scale(1.8);
+  }
+}
+
+@keyframes fac-rumble {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2px, 1px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translate(2px, -1px) rotate(0.4deg);
+  }
+}
+
+@keyframes fac-swing {
+  0% {
+    transform: translateY(-40px) rotate(-8deg) scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: translateY(4px) rotate(3deg) scale(1.04);
+    opacity: 1;
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes fac-arrive {
+  0% {
+    transform: translateX(-110vw) rotate(-10deg);
+  }
+  80% {
+    transform: translateX(6px) rotate(2deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+@keyframes fac-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-12px) rotate(-6deg);
+  }
+  40% {
+    transform: translateX(10px) rotate(5deg);
+  }
+  60% {
+    transform: translateX(-7px) rotate(-3deg);
+  }
+  80% {
+    transform: translateX(4px);
+  }
+}
+
+@keyframes fac-glow {
+  from {
+    box-shadow: 0 6px 0 var(--td), 0 0 0 4px rgba(255, 214, 64, 0.9), 0 0 18px 6px rgba(255, 200, 40, 0.6);
+    translate: 0 0;
+  }
+  to {
+    box-shadow: 0 6px 0 var(--td), 0 0 0 8px rgba(255, 214, 64, 1), 0 0 34px 14px rgba(255, 200, 40, 0.85);
+    translate: 0 -6px;
+  }
+}
+
+@keyframes fac-next {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 138, 0, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(255, 138, 0, 0);
+  }
+}
+
+@keyframes fac-land {
+  from {
+    transform: scale(0.3);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+@keyframes fac-word-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}

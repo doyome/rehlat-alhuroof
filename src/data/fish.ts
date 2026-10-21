@@ -1,8 +1,9 @@
 // Content for «الصيّاد». Letters on the fish are drawn as text, never baked into images.
 
-import { LETTER_SLUG } from './race';
+import { LETTER, LETTER_SETS, LOOKALIKES, letterNameAudio } from './arabic';
 
-export const LETTER_NAME: Record<string, string> = { ب: 'باء', ت: 'تاء', ث: 'ثاء', م: 'ميم', ن: 'نون', س: 'سين' };
+export { letterNameAudio };
+export const LETTER_NAME: Record<string, string> = Object.fromEntries([...LETTER].map(([c, l]) => [c, l.name]));
 
 export interface FishStage {
   id: string;
@@ -20,9 +21,20 @@ export const FISH_STAGES: FishStage[] = [
   { id: 'f-btmn', title: 'ب ت م ن', letters: ['ب', 'ت', 'م', 'ن'], fish: 4, showCard: false, rounds: 5 },
   { id: 'f-btth', title: 'ب ت ث', letters: ['ب', 'ت', 'ث'], fish: 4, showCard: false, rounds: 5 },
   { id: 'f-all', title: 'مراجعة: ب ت ث م ن س', letters: ['ب', 'ت', 'ث', 'م', 'ن', 'س'], fish: 6, showCard: false, rounds: 5 },
+  // every letter: each lesson set is met with the card first, then by ear; look-alike families last
+  ...LETTER_SETS.flatMap((set, i) => [
+    { id: `fish-set${i + 1}`, title: set.join(' '), letters: set, fish: 4, showCard: true, rounds: 5 },
+    { id: `fish-set${i + 1}-ear`, title: `بالسمع: ${set.join(' ')}`, letters: set, fish: 4, showCard: false, rounds: 6 },
+  ]),
+  ...LOOKALIKES.map((set, i) => ({
+    id: `fish-look${i + 1}`,
+    title: `متشابهات: ${set.join(' ')}`,
+    letters: set,
+    fish: 5,
+    showCard: false,
+    rounds: 6,
+  })),
 ];
-
-export const letterNameAudio = (l: string) => `fish/name-${LETTER_SLUG[l]}`;
 
 export const FISH_AUDIO = [
   'fish/intro', 'fish/find', 'fish/this-is', 'fish/try-again', 'fish/hint', 'fish/done',

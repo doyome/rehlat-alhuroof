@@ -922,3 +922,32 @@ button {
 .fishing .bubble.show {
   transform: translate(-50%, 0);
 }
+
+/* ---------- shared game shell ---------- */
+
+.game .stage-area {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.game .fx-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.game .hud {
+  z-index: 6;
+}
+
+.target .card.wide {
+  min-width: 150px;
+}
+
+.target .card.wide .syl {
+  font-size: 44px;
+}

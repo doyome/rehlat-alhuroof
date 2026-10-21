@@ -1,0 +1,479 @@
+/* ---------- islands map ---------- */
+
+#app.map,
+#app.isle {
+  background: linear-gradient(180deg, #7fd3e6 0%, #3fb3cf 30%, #1a8fb0 70%, #0f6f8f 100%);
+}
+
+.sea {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* slow drifting wave bands */
+.sea i {
+  position: absolute;
+  left: -50%;
+  width: 200%;
+  height: 120px;
+  background: repeating-radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.18) 0 6px, transparent 7px 46px);
+  animation: drift 18s linear infinite;
+}
+
+.sea i:nth-child(1) {
+  top: 22%;
+}
+
+.sea i:nth-child(2) {
+  top: 55%;
+  animation-duration: 26s;
+  animation-direction: reverse;
+}
+
+.sea i:nth-child(3) {
+  top: 85%;
+  animation-duration: 22s;
+}
+
+@keyframes drift {
+  to {
+    transform: translateX(25%);
+  }
+}
+
+.map .home-main h1,
+.isle .home-main h1 {
+  color: #fff;
+  text-shadow: 0 3px 0 #0f6b78, 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+
+.map .home-main h2,
+.isle .home-main h2 {
+  color: #fff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+}
+
+.map .total {
+  display: inline-block;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #b07a00;
+  border-radius: 999px;
+  padding: 2px 16px;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+/* a dotted sea route behind the islands */
+.islands {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 22px;
+}
+
+.islands::before {
+  content: '';
+  position: absolute;
+  top: 40px;
+  bottom: 40px;
+  left: 50%;
+  border-left: 6px dotted rgba(255, 255, 255, 0.7);
+}
+
+.islands li {
+  position: relative;
+  width: 82%;
+}
+
+.islands li:nth-child(odd) {
+  margin-inline-start: 0;
+}
+
+.islands li:nth-child(even) {
+  margin-inline-start: 18%;
+}
+
+.island {
+  position: relative;
+  width: 100%;
+  border: 0;
+  padding: 0;
+  border-radius: 28px;
+  background: #fff3d6;
+  box-shadow: 0 10px 0 #e2c48a, 0 18px 30px rgba(0, 40, 60, 0.35);
+  overflow: hidden;
+  text-align: start;
+  display: flex;
+  flex-direction: column;
+  animation: bob 4s ease-in-out infinite;
+  transition: transform 0.15s;
+}
+
+.islands li:nth-child(2n) .island {
+  animation-delay: -2s;
+}
+
+.island:active {
+  transform: scale(0.97);
+}
+
+@keyframes bob {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+.island.last {
+  outline: 5px solid var(--gold);
+  box-shadow: 0 10px 0 #e2c48a, 0 0 0 10px rgba(230, 180, 60, 0.35), 0 18px 30px rgba(0, 40, 60, 0.35);
+}
+
+.isl-num {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  inset-inline-start: 10px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 3px 0 #b88a1d;
+}
+
+.isl-art {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+}
+
+.isl-art > div {
+  position: absolute;
+  inset: 0;
+}
+
+.isl-info {
+  display: grid;
+  gap: 2px;
+  padding: 10px 16px 14px;
+}
+
+.isl-title {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--teal);
+  line-height: 1.2;
+}
+
+.isl-info small {
+  font-size: 16px;
+  font-weight: 600;
+  color: #8a6326;
+}
+
+.bar {
+  display: block;
+  height: 10px;
+  border-radius: 999px;
+  background: #ead7ae;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #3ec46d, #9be15d);
+}
+
+.isl-count {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4c5b63;
+}
+
+.island.soon {
+  filter: grayscale(0.35);
+  animation: none;
+}
+
+/* ---------- island art (drawn in code; letters are never baked into pictures) ---------- */
+
+.art-photo {
+  background: center / cover;
+}
+
+.art-photo .boat {
+  position: absolute;
+  left: 50%;
+  top: 6%;
+  height: 62%;
+  translate: -50% 0;
+  filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.3));
+  animation: rock 3s ease-in-out infinite;
+}
+
+@keyframes rock {
+  50% {
+    rotate: -4deg;
+  }
+}
+
+.art-slate {
+  background: radial-gradient(circle at 30% 30%, #3f7d5a, #24523a);
+  border: 10px solid #a8743f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6%;
+}
+
+.art-slate b {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(54px, 13vw, 92px);
+  color: #fffbe8;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.5);
+  opacity: 0.95;
+}
+
+.art-slate b:nth-child(2) {
+  color: #ffd76a;
+}
+
+.art-slate b:nth-child(3) {
+  color: #9fe3ff;
+}
+
+.art-slate .pen {
+  position: absolute;
+  right: 8%;
+  bottom: 10%;
+  font-size: clamp(34px, 8vw, 54px);
+  animation: write 1.6s ease-in-out infinite;
+}
+
+@keyframes write {
+  50% {
+    translate: -14px -8px;
+    rotate: -12deg;
+  }
+}
+
+.stk {
+  position: absolute;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.25));
+}
+
+.art-post {
+  background: linear-gradient(180deg, #ffe08a, #ffb86b);
+}
+
+.art-post .box {
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  translate: -50% 0;
+  font-size: clamp(70px, 18vw, 120px);
+}
+
+.art-post .a {
+  height: 42%;
+  left: 6%;
+  top: 10%;
+  rotate: -12deg;
+  animation: fly 3s ease-in-out infinite;
+}
+
+.art-post .b {
+  height: 36%;
+  right: 6%;
+  top: 14%;
+}
+
+.art-post .c {
+  height: 40%;
+  right: 22%;
+  bottom: 6%;
+}
+
+@keyframes fly {
+  50% {
+    translate: 10px -8px;
+  }
+}
+
+.art-factory {
+  background: linear-gradient(135deg, #8f5cf7, #ff7eb3);
+}
+
+.art-factory .gear {
+  position: absolute;
+  font-size: clamp(50px, 12vw, 80px);
+  animation: spin 6s linear infinite;
+}
+
+.art-factory .g1 {
+  left: 5%;
+  top: 6%;
+}
+
+.art-factory .g2 {
+  left: 20%;
+  top: 34%;
+  font-size: clamp(36px, 8vw, 56px);
+  animation-direction: reverse;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+.art-factory .a {
+  height: 44%;
+  right: 6%;
+  top: 8%;
+}
+
+.art-factory .b {
+  height: 34%;
+  right: 38%;
+  top: 12%;
+}
+
+.art-factory b {
+  position: absolute;
+  left: 50%;
+  bottom: 6%;
+  translate: -50% 0;
+  white-space: nowrap;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(26px, 6vw, 40px);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 14px;
+  padding: 0 14px;
+}
+
+.art-dict {
+  background: linear-gradient(160deg, #fff4d1, #f3cf8a);
+}
+
+.art-dict .a {
+  height: 62%;
+  left: 8%;
+  top: 14%;
+}
+
+.art-dict .b {
+  height: 64%;
+  right: 30%;
+  top: 6%;
+  rotate: 20deg;
+  animation: write 2s ease-in-out infinite;
+}
+
+.art-dict b {
+  position: absolute;
+  right: 6%;
+  bottom: 10%;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(36px, 9vw, 60px);
+  color: #7a3e12;
+}
+
+.art-vs {
+  background: linear-gradient(90deg, #ff6b6b, #5b8cff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8%;
+}
+
+.art-vs img {
+  height: 70%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  object-position: top;
+  border-radius: 50%;
+  border: 5px solid #fff;
+}
+
+.art-vs b {
+  font-size: clamp(36px, 9vw, 60px);
+  color: #fff;
+  font-weight: 800;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* ---------- inside one island ---------- */
+
+.back {
+  border: 0;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--teal);
+  font-size: 20px;
+  font-weight: 800;
+  padding: 6px 18px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.15);
+}
+
+.isle-banner {
+  margin-top: 12px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #fff3d6;
+  box-shadow: 0 10px 0 #e2c48a, 0 18px 30px rgba(0, 40, 60, 0.35);
+}
+
+.isle-head {
+  padding: 8px 16px 14px;
+}
+
+.isle .isle-head h1 {
+  margin: 0;
+  font-size: clamp(30px, 7vw, 42px);
+  color: var(--teal);
+  text-shadow: none;
+}
+
+.isle-head p {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: #8a6326;
+}
+
+.isle .opts {
+  justify-content: center;
+}
+
+@media (max-width: 600px) {
+  .islands li,
+  .islands li:nth-child(even) {
+    width: 92%;
+  }
+  .islands li:nth-child(even) {
+    margin-inline-start: 8%;
+  }
+}
+
+@media (min-width: 900px) {
+  .map .home-main,
+  .isle .home-main {
+    max-width: 720px;
+  }
+}

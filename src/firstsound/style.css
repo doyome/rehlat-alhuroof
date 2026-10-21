@@ -1,0 +1,796 @@
+/* ---------- «مكتب البريد — أول حرف» ---------- */
+/* A sunny post office in plain CSS. The game sets --sky, --aw, --mb (mailbox width), --parcel, --desk
+   and --cols on resize, so the same scene fits a phone held upright and a desktop screen. */
+
+.firstsound .po {
+  --sky: 120px;
+  --aw: 40px;
+  --mb: 120px;
+  --parcel: 140px;
+  --desk: 26px;
+  --cols: 4;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: var(--sky) var(--aw) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'sky' 'aw' 'boxes' 'counter';
+  background-color: #ffd98a;
+  background-image:
+    linear-gradient(115deg, rgba(255, 255, 255, 0.45) 0%, rgba(255, 255, 255, 0) 42%),
+    linear-gradient(180deg, rgba(255, 244, 214, 0.6), rgba(255, 244, 214, 0) 30%),
+    repeating-linear-gradient(0deg, rgba(166, 104, 36, 0.1) 0 2px, transparent 2px 46px);
+  overflow: hidden;
+}
+
+/* a phone on its side: the counter stands beside the mailboxes */
+.firstsound .po.side {
+  grid-template-rows: var(--sky) var(--aw) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'sky sky' 'aw aw' 'boxes counter';
+}
+
+/* ---- sky ---- */
+
+.firstsound .po-sky {
+  grid-area: sky;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #4fb8ee 0%, #9fe0ff 100%);
+  pointer-events: none;
+}
+
+.firstsound .po-sun {
+  position: absolute;
+  left: 24%;
+  top: 56%;
+  width: calc(var(--sky) * 0.7);
+  height: calc(var(--sky) * 0.7);
+  margin: calc(var(--sky) * -0.35) 0 0 calc(var(--sky) * -0.35);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6b8 0 26%, #ffd23f 27% 40%, rgba(255, 210, 63, 0) 41%);
+}
+
+.firstsound .po-sun::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 214, 70, 0.85) 0 9deg, transparent 9deg 30deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 45%, #000 46% 66%, transparent 68%);
+  mask: radial-gradient(circle, transparent 0 45%, #000 46% 66%, transparent 68%);
+  animation: po-spin 26s linear infinite;
+}
+
+@keyframes po-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.firstsound .po-cloud {
+  position: absolute;
+  width: calc(var(--sky) * 0.7);
+  height: calc(var(--sky) * 0.22);
+  border-radius: 999px;
+  background: #fff;
+  opacity: 0.92;
+  animation: po-drift 38s linear infinite;
+}
+
+.firstsound .po-cloud::before,
+.firstsound .po-cloud::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.firstsound .po-cloud::before {
+  width: 46%;
+  height: 170%;
+  left: 14%;
+  bottom: 20%;
+}
+
+.firstsound .po-cloud::after {
+  width: 34%;
+  height: 130%;
+  left: 50%;
+  bottom: 25%;
+}
+
+.firstsound .po-cloud.c1 {
+  top: 48%;
+  left: 52%;
+}
+
+.firstsound .po-cloud.c2 {
+  top: 66%;
+  left: 78%;
+  transform: scale(0.7);
+  animation-duration: 52s;
+  animation-delay: -20s;
+}
+
+@keyframes po-drift {
+  0% {
+    translate: 0 0;
+  }
+  50% {
+    translate: -18vw 0;
+  }
+  100% {
+    translate: 0 0;
+  }
+}
+
+/* ---- striped awning with the sign ---- */
+
+.firstsound .po-awning {
+  grid-area: aw;
+  position: relative;
+  z-index: 2;
+  background: repeating-linear-gradient(90deg, #e9483b 0 36px, #fff7ec 36px 72px);
+  box-shadow: inset 0 4px 0 rgba(0, 0, 0, 0.12);
+  pointer-events: none;
+}
+
+.firstsound .po-awning::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: 18px;
+  background:
+    radial-gradient(circle at 18px 0, #e9483b 0 17px, transparent 18px) 0 0 / 72px 18px repeat-x,
+    radial-gradient(circle at 54px 0, #fff7ec 0 17px, transparent 18px) 0 0 / 72px 18px repeat-x;
+  filter: drop-shadow(0 4px 2px rgba(0, 0, 0, 0.14));
+}
+
+.firstsound .po-sign {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 16px 4px;
+  background: var(--teal);
+  border: 3px solid var(--gold);
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(16px, calc(var(--aw) * 0.5), 26px);
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+}
+
+.firstsound .po-sign svg {
+  width: 1.3em;
+  height: 1em;
+  fill: #fff8ea;
+  stroke: var(--rose);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+/* ---- mailboxes ---- */
+
+.firstsound .po-boxes {
+  grid-area: boxes;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--cols), auto);
+  justify-content: center;
+  align-content: center;
+  gap: calc(var(--mb) * 0.16) calc(var(--mb) * 0.42);
+  /* room on the right for the flag of the last box */
+  padding: calc(var(--mb) * 0.14) calc(var(--mb) * 0.36) 0 0;
+  position: relative;
+  z-index: 1;
+}
+
+.firstsound .po-boxes.odd .mailbox:last-child {
+  grid-column: 1 / -1;
+  justify-self: center;
+}
+
+.firstsound .mailbox {
+  position: relative;
+  width: var(--mb);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  touch-action: none;
+}
+
+.firstsound .mailbox.red {
+  --c: #e8473a;
+  --c-d: #b02a20;
+  --c-l: #ff8072;
+  --flag: #ffd23f;
+}
+
+.firstsound .mailbox.teal {
+  --c: #17a5a9;
+  --c-d: #0b6f72;
+  --c-l: #63d8d5;
+  --flag: #ff5a4a;
+}
+
+.firstsound .mailbox.yellow {
+  --c: #f5c330;
+  --c-d: #c38f0e;
+  --c-l: #ffe48a;
+  --flag: #e8473a;
+}
+
+.firstsound .mailbox.blue {
+  --c: #3f7fe0;
+  --c-d: #2453a3;
+  --c-l: #86b5ff;
+  --flag: #ffd23f;
+}
+
+.firstsound .mb-body {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: calc(var(--mb) * 1.12);
+  border-radius: calc(var(--mb) * 0.5) calc(var(--mb) * 0.5) calc(var(--mb) * 0.1) calc(var(--mb) * 0.1);
+  background: linear-gradient(90deg, var(--c-d) 0%, var(--c) 18%, var(--c-l) 38%, var(--c) 62%, var(--c-d) 100%);
+  border: 3px solid rgba(0, 0, 0, 0.18);
+  box-shadow: inset 0 calc(var(--mb) * -0.08) 0 rgba(0, 0, 0, 0.14), 0 8px 14px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s;
+}
+
+/* the seam of the domed lid */
+.firstsound .mb-body::before {
+  content: '';
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 29%;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+/* help: the right mailbox shines */
+.firstsound .mb-body::after {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.firstsound .mailbox.glow .mb-body::after {
+  box-shadow: 0 0 0 5px #ffe066, 0 0 30px 12px rgba(255, 214, 70, 0.9);
+  animation: mb-glow 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes mb-glow {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.firstsound .mb-slot {
+  position: absolute;
+  top: 14%;
+  left: 20%;
+  width: 60%;
+  height: 8%;
+  border-radius: 999px;
+  background: #1e2227;
+  box-shadow: inset 0 3px 4px #000, 0 2px 0 rgba(255, 255, 255, 0.5);
+}
+
+.firstsound .mb-plate {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  width: calc(var(--mb) * 0.64);
+  height: calc(var(--mb) * 0.64);
+  margin-left: calc(var(--mb) * -0.32);
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff, #fdf0d2);
+  border: calc(var(--mb) * 0.03) solid #fff;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.14), inset 0 -4px 0 rgba(0, 0, 0, 0.06);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.firstsound .mb-plate b {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--mb) * 0.42);
+  line-height: 1;
+  color: var(--ink);
+  direction: rtl;
+  padding-bottom: calc(var(--mb) * 0.07);
+}
+
+.firstsound .mb-post {
+  position: relative;
+  width: calc(var(--mb) * 0.2);
+  height: calc(var(--mb) * 0.24);
+  background: linear-gradient(90deg, #59626e, #949eab 45%, #59626e);
+}
+
+.firstsound .mb-post::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: calc(var(--mb) * 0.64);
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(110, 70, 20, 0.25);
+}
+
+/* the flag lies flat beside the box and pops up when a parcel arrives */
+.firstsound .mb-flag {
+  position: absolute;
+  z-index: 0;
+  left: calc(100% - var(--mb) * 0.06);
+  top: calc(var(--mb) * 0.3);
+  width: calc(var(--mb) * 0.065);
+  height: calc(var(--mb) * 0.36);
+  border-radius: 4px;
+  background: linear-gradient(90deg, #69717b, #b0b9c3, #69717b);
+  transform-origin: 50% 100%;
+  transform: rotate(90deg);
+  transition: transform 0.5s cubic-bezier(0.3, 1.7, 0.5, 1);
+}
+
+.firstsound .mb-flag::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: calc(var(--mb) * 0.2);
+  height: calc(var(--mb) * 0.14);
+  border-radius: 2px 6px 6px 2px;
+  background: var(--flag);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16);
+}
+
+@media (hover: hover) {
+  .firstsound .mailbox:hover .mb-flag {
+    animation: mb-wiggle 0.7s ease-in-out infinite;
+  }
+}
+
+.firstsound .mailbox.over .mb-flag {
+  animation: mb-wiggle 0.6s ease-in-out infinite;
+}
+
+.firstsound .mailbox.peek .mb-flag {
+  animation: mb-wiggle 0.6s ease-in-out 2;
+}
+
+.firstsound .mailbox.over .mb-body {
+  transform: scale(1.07);
+}
+
+.firstsound .mailbox.got .mb-flag {
+  transform: rotate(0deg);
+  animation: none;
+}
+
+@keyframes mb-wiggle {
+  0%,
+  100% {
+    transform: rotate(90deg);
+  }
+  30% {
+    transform: rotate(56deg);
+  }
+  65% {
+    transform: rotate(100deg);
+  }
+}
+
+/* a parcel is in hand: the mailboxes bob to invite a tap */
+.firstsound .po-boxes.ready .mb-body {
+  animation: mb-ready 0.8s ease-in-out infinite alternate;
+}
+
+.firstsound .po-boxes.ready .mailbox:nth-child(2) .mb-body {
+  animation-delay: -0.2s;
+}
+
+.firstsound .po-boxes.ready .mailbox:nth-child(3) .mb-body {
+  animation-delay: -0.4s;
+}
+
+.firstsound .po-boxes.ready .mailbox:nth-child(4) .mb-body {
+  animation-delay: -0.6s;
+}
+
+@keyframes mb-ready {
+  to {
+    transform: translateY(calc(var(--mb) * -0.05));
+  }
+}
+
+.firstsound .mailbox.got .mb-body {
+  animation: mb-gulp 0.5s ease-out;
+}
+
+@keyframes mb-gulp {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.08, 0.92);
+  }
+  70% {
+    transform: scale(0.97, 1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.firstsound .mailbox.nope {
+  animation: mb-shake 0.5s ease-in-out;
+}
+
+@keyframes mb-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px) rotate(-3deg);
+  }
+  45% {
+    transform: translateX(7px) rotate(2deg);
+  }
+  70% {
+    transform: translateX(-4px);
+  }
+}
+
+.firstsound .mailbox.swap .mb-plate {
+  animation: mb-swap 0.45s ease-out;
+}
+
+@keyframes mb-swap {
+  from {
+    transform: scale(0.3) rotate(-25deg);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* the post-office stamp, drawn as an SVG ring with a tick that inks itself in */
+.firstsound .mb-stamp {
+  position: absolute;
+  z-index: 2;
+  left: -12%;
+  top: 56%;
+  width: calc(var(--mb) * 0.56);
+  height: calc(var(--mb) * 0.56);
+  pointer-events: none;
+  animation: mb-stamp 0.45s cubic-bezier(0.2, 1.5, 0.5, 1) both;
+}
+
+.firstsound .mb-stamp svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  fill: none;
+  stroke: #17924f;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.2));
+}
+
+.firstsound .mb-stamp .ring {
+  fill: rgba(255, 255, 255, 0.92);
+  stroke-width: 7;
+}
+
+.firstsound .mb-stamp .ring2 {
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
+}
+
+.firstsound .mb-stamp .tick {
+  stroke-width: 11;
+  stroke-dasharray: 70;
+  stroke-dashoffset: 70;
+  animation: mb-tick 0.35s 0.25s ease-out forwards;
+}
+
+@keyframes mb-stamp {
+  0% {
+    transform: scale(2.3) rotate(-35deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(0.9) rotate(-12deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(-12deg);
+    opacity: 1;
+  }
+}
+
+@keyframes mb-tick {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* ---- counter with its conveyor belt ---- */
+
+.firstsound .po-counter {
+  grid-area: counter;
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+}
+
+.firstsound .po.side .po-counter {
+  align-self: end;
+  width: calc(var(--parcel) * 1.75);
+}
+
+.firstsound .po-belt {
+  position: relative;
+  height: calc(var(--parcel) * 0.78 + 30px);
+}
+
+.firstsound .po-belt::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 20px;
+  background: repeating-linear-gradient(90deg, #3a3f46 0 18px, #4d545d 18px 36px);
+  border-top: 3px solid #22262b;
+  box-shadow: inset 0 3px 4px rgba(0, 0, 0, 0.35);
+}
+
+.firstsound .po-belt.moving::after {
+  animation: po-belt 0.35s linear infinite;
+}
+
+@keyframes po-belt {
+  to {
+    background-position: -36px 0;
+  }
+}
+
+.firstsound .po-roller {
+  position: absolute;
+  z-index: 1;
+  left: 6px;
+  bottom: -4px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #d3dae1 0 24%, #6f7782 27% 100%);
+  border: 2px solid #3a3f46;
+}
+
+.firstsound .po-roller.end {
+  left: auto;
+  right: 6px;
+}
+
+.firstsound .po-desk {
+  height: calc(var(--desk) + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, #bb793d, #8b5122);
+  border-top: 4px solid #dc9c5c;
+  box-shadow: inset 0 6px 0 rgba(255, 255, 255, 0.12);
+}
+
+/* ---- the parcel ---- */
+
+.firstsound .parcel {
+  position: absolute;
+  z-index: 4;
+  left: calc(50% - var(--parcel) / 2);
+  bottom: 18px;
+  width: var(--parcel);
+  height: calc(var(--parcel) * 0.78);
+  padding: 0;
+  border: 0;
+  background: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.firstsound .parcel.drag {
+  z-index: 20;
+  cursor: grabbing;
+}
+
+.firstsound .parcel.gone {
+  visibility: hidden;
+}
+
+.firstsound .parcel-box {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #d99d5f, #b97638 70%, #a4642b);
+  border: 3px solid #87511e;
+  box-shadow: inset 0 calc(var(--parcel) * 0.14) 0 rgba(255, 255, 255, 0.12), 0 10px 14px rgba(60, 30, 0, 0.3);
+  transition: box-shadow 0.2s;
+}
+
+/* the twine, tied crosswise */
+.firstsound .parcel-box::before,
+.firstsound .parcel-box::after {
+  content: '';
+  position: absolute;
+  background: repeating-linear-gradient(45deg, #f3e2bb 0 4px, #dcc28c 4px 7px);
+}
+
+.firstsound .parcel-box::before {
+  top: 0;
+  bottom: 0;
+  left: 46%;
+  width: 8%;
+}
+
+.firstsound .parcel-box::after {
+  left: 0;
+  right: 0;
+  top: 45%;
+  height: 10%;
+}
+
+.firstsound .parcel-bow {
+  position: absolute;
+  z-index: 2;
+  left: 33%;
+  top: -14%;
+  width: 34%;
+  fill: #f3e2bb;
+  stroke: #b39457;
+  stroke-width: 2;
+}
+
+.firstsound .parcel-label {
+  position: absolute;
+  z-index: 1;
+  left: 19%;
+  top: 13%;
+  width: 62%;
+  height: 74%;
+  padding: 4%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+}
+
+.firstsound .parcel-label img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+/* no picture yet: an airmail label with the vowelled word */
+.firstsound .parcel-label.text {
+  border: 5px solid transparent;
+  background:
+    linear-gradient(#fffdf6, #fffdf6) padding-box,
+    repeating-linear-gradient(45deg, #e0463a 0 8px, #fff 8px 14px, #2d62d6 14px 22px, #fff 22px 28px) border-box;
+}
+
+.firstsound .parcel-label span {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  font-size: calc(var(--parcel) * 0.17);
+  line-height: 1.5;
+  color: var(--ink);
+  direction: rtl;
+  white-space: nowrap;
+}
+
+.firstsound .parcel.sel .parcel-box {
+  animation: parcel-float 0.8s ease-in-out infinite alternate;
+  box-shadow: 0 0 0 5px #fff, 0 0 0 9px var(--gold), 0 18px 22px rgba(60, 30, 0, 0.3);
+}
+
+.firstsound .parcel.drag .parcel-box {
+  box-shadow: 0 0 0 4px #fff, 0 24px 26px rgba(60, 30, 0, 0.35);
+}
+
+@keyframes parcel-float {
+  to {
+    transform: translateY(-10%) rotate(-2deg);
+  }
+}
+
+.firstsound .parcel.arrive .parcel-box {
+  animation: parcel-arrive 0.85s cubic-bezier(0.2, 0.9, 0.3, 1.08) both;
+}
+
+.firstsound .po.side .parcel.arrive .parcel-box {
+  animation-name: parcel-arrive-l;
+}
+
+@keyframes parcel-arrive {
+  from {
+    transform: translateX(calc(50vw + var(--parcel))) rotate(4deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes parcel-arrive-l {
+  from {
+    transform: translateX(calc(-1 * var(--parcel) * 2)) rotate(-4deg);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.firstsound .parcel.wobble .parcel-box {
+  animation: parcel-wobble 0.5s ease-out;
+}
+
+@keyframes parcel-wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-5deg) scale(1.03);
+  }
+  55% {
+    transform: rotate(4deg);
+  }
+  80% {
+    transform: rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .firstsound .po-sun::before,
+  .firstsound .po-cloud,
+  .firstsound .po-boxes.ready .mb-body,
+  .firstsound .parcel.sel .parcel-box,
+  .firstsound .mailbox.glow .mb-body::after {
+    animation: none;
+  }
+  .firstsound .mailbox.glow .mb-body::after {
+    opacity: 1;
+  }
+}

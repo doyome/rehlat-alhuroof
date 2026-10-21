@@ -1,0 +1,235 @@
+/* ---------- «مشغل الحروف»: a sand-garden workshop with an ivory slate ---------- */
+
+.trace .stage-area {
+  background: linear-gradient(180deg, #ffd59a 0%, #ffe6bd 34%, #f6d394 58%, #ecbd76 100%);
+}
+
+.tr-garden,
+.tr-garden i {
+  position: absolute;
+  pointer-events: none;
+}
+
+.tr-garden {
+  inset: 0;
+  overflow: hidden;
+}
+
+/* striped workshop awning along the top, scalloped edge */
+.tr-awning {
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 54px;
+  background: repeating-linear-gradient(90deg, #e8566d 0 46px, #fff3dc 46px 92px);
+  box-shadow: 0 4px 0 rgba(150, 60, 40, 0.18);
+}
+
+.tr-awning::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 16px;
+  background: radial-gradient(circle at 23px 0, #e8566d 22px, transparent 23px) 0 0 / 92px 16px repeat-x,
+    radial-gradient(circle at 69px 0, #fff3dc 22px, transparent 23px) 0 0 / 92px 16px repeat-x;
+}
+
+.tr-sun {
+  right: 8%;
+  top: 70px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff6c4 0 38%, #ffd23f 39% 58%, rgba(255, 210, 63, 0) 72%);
+  opacity: 0.85;
+}
+
+.tr-dune {
+  border-radius: 50%;
+}
+
+.tr-dune.a {
+  left: -20%;
+  bottom: -32%;
+  width: 90%;
+  height: 62%;
+  background: radial-gradient(ellipse at 50% 30%, #f3c27a, #dda05a 70%);
+}
+
+.tr-dune.b {
+  right: -25%;
+  bottom: -38%;
+  width: 95%;
+  height: 66%;
+  background: radial-gradient(ellipse at 45% 28%, #f6cd8a, #e2aa63 70%);
+}
+
+/* scattered coloured pebbles on the sand */
+.tr-pebbles {
+  inset: 0;
+  background: radial-gradient(circle at 8% 82%, #3fb6f0 0 7px, transparent 8px),
+    radial-gradient(circle at 15% 90%, #ff8a5c 0 9px, transparent 10px),
+    radial-gradient(circle at 23% 78%, #a26bf5 0 5px, transparent 6px),
+    radial-gradient(circle at 78% 86%, #5ccf6b 0 8px, transparent 9px),
+    radial-gradient(circle at 86% 78%, #ffd23f 0 6px, transparent 7px),
+    radial-gradient(circle at 93% 92%, #ff5d73 0 9px, transparent 10px),
+    radial-gradient(circle at 4% 40%, #ffd23f 0 6px, transparent 7px),
+    radial-gradient(circle at 96% 46%, #3fb6f0 0 7px, transparent 8px),
+    radial-gradient(circle at 52% 96%, #ff8a5c 0 6px, transparent 7px);
+}
+
+/* the slate: wooden frame drawn behind, ivory paper on top */
+.tr-slate {
+  position: absolute;
+  z-index: 1;
+}
+
+.tr-slate::before {
+  content: '';
+  position: absolute;
+  inset: -14px;
+  border-radius: 32px;
+  z-index: -1;
+  background: repeating-linear-gradient(100deg, rgba(255, 255, 255, 0.08) 0 6px, rgba(0, 0, 0, 0.05) 6px 13px),
+    linear-gradient(180deg, #c98a4b, #a8692f);
+  box-shadow: 0 14px 30px rgba(110, 60, 20, 0.35), inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.tr-paper {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 50% 35%, #fffdf6, #fbf1dc 80%);
+  box-shadow: inset 0 3px 10px rgba(120, 80, 30, 0.22);
+}
+
+.tr-paper canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.tr-ink {
+  cursor: crosshair;
+  transition: opacity 0.45s;
+}
+
+.tr-ink.fade {
+  opacity: 0;
+}
+
+.tr-slate.win {
+  animation: tr-bounce 0.9s cubic-bezier(0.2, 1.5, 0.4, 1);
+}
+
+@keyframes tr-bounce {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.06) rotate(-1.5deg);
+  }
+  55% {
+    transform: scale(0.98) rotate(1deg);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* big buttons: a row under the slate (portrait) or a column beside it (landscape) */
+.tr-tools {
+  --btn: 88px;
+  position: absolute;
+  z-index: 2;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 16px;
+  direction: rtl;
+}
+
+.tr-tools.col {
+  flex-direction: column;
+}
+
+.tr-btn {
+  min-width: calc(var(--btn) * 1.5);
+  height: var(--btn);
+  border-radius: 24px;
+  border: 4px solid #fff;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: calc(var(--btn) * 0.32);
+  font-weight: 800;
+  box-shadow: 0 7px 0 rgba(0, 0, 0, 0.16), 0 10px 20px rgba(110, 60, 20, 0.25);
+  touch-action: none;
+}
+
+.tr-tools.col .tr-btn {
+  min-width: 0;
+  width: var(--btn);
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  font-size: calc(var(--btn) * 0.24);
+}
+
+.tr-btn svg {
+  width: calc(var(--btn) * 0.42);
+  height: calc(var(--btn) * 0.42);
+  flex: none;
+}
+
+.tr-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.16), 0 6px 12px rgba(110, 60, 20, 0.25);
+}
+
+.tr-btn.done {
+  background: linear-gradient(180deg, #5fd36f, #2fa846);
+  color: #fff;
+}
+
+.tr-btn.clear {
+  background: linear-gradient(180deg, #fffaf0, #f5e4c4);
+  color: #a0612b;
+}
+
+/* the letter looks finished: the «تم» button glows gently */
+.tr-btn.done.ready {
+  animation: tr-ready 1.1s ease-in-out infinite;
+}
+
+@keyframes tr-ready {
+  50% {
+    box-shadow: 0 7px 0 rgba(0, 0, 0, 0.16), 0 0 0 10px rgba(95, 211, 111, 0.35), 0 0 26px rgba(95, 211, 111, 0.8);
+    transform: scale(1.06);
+  }
+}
+
+@media (max-width: 600px) {
+  .tr-awning {
+    height: 40px;
+  }
+  .tr-sun {
+    top: 50px;
+    width: 84px;
+    height: 84px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tr-slate.win,
+  .tr-btn.done.ready {
+    animation: none;
+  }
+}

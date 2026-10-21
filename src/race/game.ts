@@ -5,7 +5,7 @@
 
 import { Engine, Music, play, preloadAudio, say, sfx, stopVoice } from '../audio';
 import { logAttempt, saveStage } from '../progress';
-import { RACE_AUDIO, type RaceStage, type Syllable, syllableAudio, syllableKey, syllableText } from '../data/race';
+import { RACE_AUDIO, type RaceStage, type Syllable, stageAudio, syllableAudio, syllableKey, syllableText } from '../data/race';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -32,9 +32,9 @@ const IMG_NAMES = ['backdrop.jpg', ...CAR_VIEWS, 'gate.png', 'palm.png', 'lamp.p
 type ImgName = (typeof IMG_NAMES)[number];
 const images = new Map<ImgName, HTMLImageElement>();
 
-export function preloadRace() {
+export function preloadRace(stage: RaceStage) {
   return Promise.all([
-    preloadAudio(RACE_AUDIO),
+    preloadAudio([...RACE_AUDIO, ...stageAudio(stage)]),
     ...IMG_NAMES.map(
       (n) =>
         new Promise<void>((res) => {
