@@ -9,8 +9,13 @@ export const settings = { music: true, voice: true, sfx: true };
 
 function ac() {
   ctx ??= new AudioContext();
-  if (ctx.state === 'suspended') void ctx.resume();
+  if (ctx.state !== 'running') void ctx.resume().catch(() => undefined);
   return ctx;
+}
+
+// iPad Safari leaves the context 'interrupted' after a lock or a call; the next touch wakes it
+for (const ev of ['pointerdown', 'touchend', 'keydown'] as const) {
+  window.addEventListener(ev, () => ctx && ctx.state !== 'running' && void ctx.resume().catch(() => undefined), { passive: true });
 }
 
 let arVoice: SpeechSynthesisVoice | undefined;
@@ -84,13 +89,18 @@ export async function say(key: string, text: string): Promise<void> {
     voiceSrc = src;
     voiceListeners.forEach((f) => f(true));
     return new Promise((res) => {
-      src.onended = () => {
+      const end = () => {
+        clearTimeout(guard);
         if (voiceSrc === src) {
           voiceSrc = null;
           voiceListeners.forEach((f) => f(false));
         }
         res();
       };
+      // iPad Safari can suspend or interrupt the audio context (lock screen, a notification, a call);
+      // then `ended` never fires and every game waiting on the voice would freeze, so a timer backs it up
+      const guard = setTimeout(end, buf.duration * 1000 + 700);
+      src.onended = end;
     });
   }
   if (!('speechSynthesis' in window)) return;
@@ -100,7 +110,12 @@ export async function say(key: string, text: string): Promise<void> {
   if (arVoice) u.voice = arVoice;
   u.rate = 0.85;
   return new Promise((res) => {
-    u.onend = () => res();
+    // cancel() or a missing voice can skip `end`; never leave a game waiting
+    const guard = setTimeout(res, 1500 + text.length * 180);
+    u.onend = u.onerror = () => {
+      clearTimeout(guard);
+      res();
+    };
     speechSynthesis.speak(u);
   });
 }

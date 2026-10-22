@@ -8,7 +8,7 @@ import './style.css';
 import { play, preloadAudio, say, sfx } from '../audio';
 import { GameShell } from '../core/shell';
 import { logAttempt } from '../progress';
-import { LETTER, WORDS, firstLetter, letterNameAudio, wordAudio, wordImage, type Word } from '../data/arabic';
+import { LETTER, WORDS, firstLetter, wordAudio, wordImage, type Word } from '../data/arabic';
 import { FIRSTSOUND_AUDIO, type FirstSoundStage, wordsFor } from '../data/firstsound';
 
 const BASE = import.meta.env.BASE_URL;
@@ -103,7 +103,6 @@ export class FirstSoundGame {
   private roundStart = 0;
   private delivered = 0;
   private busy = true; // true while voices/animations own the scene
-  private selected = false; // parcel tapped, waiting for a mailbox tap
   private drag: Drag | null = null;
   private dead = false;
   private introDone = false;
@@ -246,7 +245,6 @@ export class FirstSoundGame {
   }
 
   private setSelected(on: boolean) {
-    this.selected = on;
     this.parcel.classList.toggle('sel', on);
     this.boxesEl.classList.toggle('ready', on);
   }
@@ -316,21 +314,10 @@ export class FirstSoundGame {
     void say(wordAudio(this.word), this.word.text);
   }
 
+  /** Tapping a mailbox posts the parcel there: there is only ever one parcel, so one tap is enough. */
   private tapBox(box: Box) {
-    if (this.busy || this.drag || this.shell.done) return;
-    if (this.selected) {
-      void this.post(box, 0, 0);
-      return;
-    }
-    // nothing in hand yet: the mailbox says its letter, and the parcel waves
-    box.el.classList.remove('peek');
-    void box.el.offsetWidth;
-    box.el.classList.add('peek');
-    this.parcel.classList.remove('wobble');
-    void this.parcel.offsetWidth;
-    this.parcel.classList.add('wobble');
-    this.shell.bubble('المس الطرد أولًا، ثم اختر الصندوق', 2600);
-    void say(letterNameAudio(box.letter), LETTER.get(box.letter)?.name ?? box.letter);
+    if (this.busy || this.drag || this.shell.done || this.shell.paused) return;
+    void this.post(box, 0, 0);
   }
 
   private replay() {
@@ -361,18 +348,26 @@ export class FirstSoundGame {
     this.tries = 0;
     this.help = 0;
     this.shell.setTarget('؟', true);
-    // the right mailbox plus other letters of the stage, in a new order every round
+    // the right mailbox plus other letters of the stage. A letter keeps its mailbox from round to round
+    // (children remember where ب lives); only boxes whose letter has to change get a new one.
     const right = firstLetter(wd);
-    const others = shuffle(this.o.stage.letters.filter((l) => l !== right)).slice(0, this.boxes.length - 1);
-    const letters = shuffle([right, ...others]);
-    this.boxes.forEach((b, i) => {
-      b.letter = letters[i] ?? '';
+    const shown = this.boxes.map((b) => b.letter);
+    const others = shuffle(this.o.stage.letters.filter((l) => l !== right));
+    others.sort((a, b) => Number(shown.includes(b)) - Number(shown.includes(a)));
+    const wanted = [right, ...others.slice(0, this.boxes.length - 1)];
+    const free = shuffle(wanted.filter((l) => !shown.includes(l)));
+    const first = !shown[0];
+    this.boxes.forEach((b) => {
+      const keep = wanted.includes(b.letter);
+      if (!keep) b.letter = free.shift() ?? '';
       b.plate.textContent = b.letter;
       b.el.setAttribute('aria-label', `صندوق حرف ${LETTER.get(b.letter)?.name ?? b.letter}`);
       b.el.classList.remove('got', 'glow', 'nope', 'over', 'peek', 'swap');
       b.body.querySelectorAll('.mb-stamp').forEach((s) => s.remove());
-      void b.el.offsetWidth;
-      b.el.classList.add('swap');
+      if (first || !keep) {
+        void b.el.offsetWidth;
+        b.el.classList.add('swap');
+      }
     });
     // a new parcel rides in on the conveyor
     this.fillLabel(wd);
