@@ -1,0 +1,155 @@
+/* «الصيّاد» role mode: the sentence banner over the sky and the wider role card. */
+
+.fishing.role-mode .target .card.role {
+  min-width: 150px;
+  height: 80px;
+  padding: 0 18px;
+}
+
+.fishing.role-mode .target .card.role .syl {
+  font-size: 36px;
+  white-space: nowrap;
+  padding-bottom: 4px;
+}
+
+.role-banner {
+  position: absolute;
+  top: 120px; /* set from the HUD in code */
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(980px, calc(100% - 32px));
+  box-sizing: border-box;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: center;
+  gap: 0 16px;
+  padding: 4px 22px 6px;
+  direction: rtl;
+  background: rgba(255, 253, 246, 0.95);
+  border: 3px solid var(--gold);
+  border-radius: 20px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25), inset 0 0 0 2px #fff;
+  font-family: 'Noto Naskh Arabic', serif;
+  pointer-events: none;
+}
+
+.role-banner:empty {
+  visibility: hidden;
+}
+
+/* each word keeps room under it for its role label, so the banner never jumps */
+.role-banner .w {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  padding-bottom: 24px;
+}
+
+.role-banner .w b {
+  font-weight: 700;
+  font-size: 40px;
+  line-height: 1.7;
+  color: var(--ink);
+  padding: 0 4px;
+  border-bottom: 5px solid transparent;
+  border-radius: 3px;
+  transition: color 0.3s, border-color 0.3s;
+}
+
+.role-banner .w small {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%) scale(0.4);
+  opacity: 0;
+  white-space: nowrap;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--teal);
+  padding: 0 10px;
+  border-radius: 999px;
+  transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1), opacity 0.25s;
+}
+
+.role-banner .w.caught b {
+  color: #c2410c;
+  border-bottom-color: #ff8a00;
+}
+
+.role-banner .w.caught small {
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+}
+
+.role-banner.pulse {
+  animation: role-banner-pulse 0.6s ease-out;
+}
+
+@keyframes role-banner-pulse {
+  35% {
+    transform: translateX(-50%) scale(1.04);
+    box-shadow: 0 0 0 8px rgba(230, 180, 60, 0.35), inset 0 0 0 2px #fff;
+  }
+}
+
+@media (max-width: 600px) {
+  .fishing.role-mode .target .card.role {
+    min-width: 110px;
+    height: 62px;
+    padding: 0 12px;
+  }
+  .fishing.role-mode .target .card.role .syl {
+    font-size: 27px;
+  }
+  .role-banner {
+    max-width: calc(100% - 24px);
+    gap: 0 10px;
+    padding: 2px 12px 4px;
+    border-radius: 16px;
+  }
+  .role-banner .w {
+    padding-bottom: 20px;
+  }
+  .role-banner .w b {
+    font-size: 28px;
+    border-bottom-width: 4px;
+  }
+  .role-banner .w small {
+    font-size: 13px;
+    line-height: 19px;
+    padding: 0 8px;
+  }
+}
+
+/* landscape phones: little height, so everything gets shorter */
+@media (max-height: 520px) and (min-width: 601px) {
+  .fishing.role-mode .target .card.role {
+    height: 64px;
+  }
+  .fishing.role-mode .target .card.role .syl {
+    font-size: 28px;
+  }
+  .role-banner .w {
+    padding-bottom: 18px;
+  }
+  .role-banner .w b {
+    font-size: 26px;
+    line-height: 1.6;
+  }
+  .role-banner .w small {
+    font-size: 12px;
+    line-height: 17px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role-banner.pulse {
+    animation: none;
+  }
+}

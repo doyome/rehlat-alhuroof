@@ -2,6 +2,7 @@
 // Stages climb from short words with a picture and one box per letter to long words by ear alone.
 
 import { LETTERS, WORDS, letterNameAudio, wordAudio } from './arabic';
+import { SPELL_STAGES, SPELL_WORDS, spellAudio } from './g4';
 
 export interface DictationStage {
   id: string;
@@ -13,6 +14,8 @@ export interface DictationStage {
   /** show one box per letter under the line */
   showLength: boolean;
   rounds: number;
+  /** 'g4': grade-4 spelling words (data/g4.ts), heard only, no pictures */
+  bank?: 'g4';
 }
 
 /** WORD ids whose spelling has min..max letters. */
@@ -35,3 +38,8 @@ export const DICTATION_AUDIO = [
   ...WORDS.map(wordAudio),
   ...LETTERS.map((l) => letterNameAudio(l.char)),
 ];
+
+/** Grade-4 spelling stations: same game, words from the grade-4 bank. */
+export const G4_DICTATION_STAGES: DictationStage[] = SPELL_STAGES.map((st) => ({ ...st, showPicture: false, bank: 'g4' as const }));
+
+export const G4_DICTATION_AUDIO = ['g4/spell-intro', ...SPELL_WORDS.map(spellAudio)];

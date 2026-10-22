@@ -6,8 +6,20 @@
 import { Engine, Music, play, preloadAudio, say, sfx, stopVoice } from '../audio';
 import { logAttempt, saveStage } from '../progress';
 import { RACE_AUDIO, type RaceStage, type Syllable, stageAudio, syllableAudio, syllableKey, syllableText } from '../data/race';
+import { G4_LINES, type QuizItem, type QuizStage } from '../data/g4';
+import './quiz.css';
 
 const BASE = import.meta.env.BASE_URL;
+
+/** Quiz stages (grade 4) carry word items; syllable stages carry letters + harakat. */
+export const isQuizStage = (s: RaceStage | QuizStage): s is QuizStage => 'items' in s;
+const QUIZ_AUDIO = ['g4/quiz-intro', 'g4/quiz-wrong'] as const;
+/** quiz waves approach a third slower (~33% more reading time for three words) */
+const QUIZ_SLOW = 0.75;
+
+/** What one wave asks for: a syllable (vowel race) or a question with word options (quiz). */
+type Target = Syllable | QuizItem;
+const isItem = (t: Target): t is QuizItem => 'q' in t;
 
 export type RaceMode = 'calm' | 'race';
 
@@ -18,7 +30,7 @@ export interface RaceResult {
 
 export interface RaceOptions {
   child: string;
-  stage: RaceStage;
+  stage: RaceStage | QuizStage;
   mode: RaceMode;
   reducedMotion: boolean;
   onExit: () => void;
@@ -32,9 +44,9 @@ const IMG_NAMES = ['backdrop.jpg', ...CAR_VIEWS, 'gate.png', 'palm.png', 'lamp.p
 type ImgName = (typeof IMG_NAMES)[number];
 const images = new Map<ImgName, HTMLImageElement>();
 
-export function preloadRace(stage: RaceStage) {
+export function preloadRace(stage: RaceStage | QuizStage) {
   return Promise.all([
-    preloadAudio([...RACE_AUDIO, ...stageAudio(stage)]),
+    preloadAudio([...RACE_AUDIO, ...(isQuizStage(stage) ? QUIZ_AUDIO : stageAudio(stage))]),
     ...IMG_NAMES.map(
       (n) =>
         new Promise<void>((res) => {
@@ -68,13 +80,14 @@ const hillAt = (d: number) => ramp(d) * (0.16 * Math.sin(d * 0.045 + 0.5) + 0.04
 
 interface Gate {
   lane: number;
-  syl: Syllable | null; // null = flower barrier in an unused lane
+  label: string | null; // syllable or word on the plate; null = flower barrier in an unused lane
+  ok: boolean; // this gate carries the right answer
   wobble: number;
 }
 
 interface Wave {
   zw: number;
-  target: Syllable;
+  target: Target;
   gates: Gate[];
   judged: boolean;
   tries: number;
@@ -221,12 +234,21 @@ export class RaceGame {
   private el: Record<string, HTMLElement> = {};
   private recent: string[] = [];
   private off: (() => void)[] = [];
+  private readonly quiz: boolean;
+  /** quiz items still to ask in this stage (shuffled, no repeats) */
+  private queue: QuizItem[] = [];
+
+  /** cruising speed: quiz waves come a little slower so three words can be read */
+  private get cruise() {
+    return SPEED[this.o.mode] * (this.quiz ? QUIZ_SLOW : 1);
+  }
 
   constructor(root: HTMLElement, opts: RaceOptions) {
     this.root = root;
     this.o = opts;
+    this.quiz = isQuizStage(opts.stage);
     root.innerHTML = '';
-    root.className = 'race';
+    root.className = this.quiz ? 'race race-quiz' : 'race';
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d')!;
     root.appendChild(this.canvas);
@@ -248,7 +270,8 @@ export class RaceGame {
 
   /** Welcome (first stage of the session only), then a 3-2-1 countdown, then go. */
   private async startSequence() {
-    if (!introPlayed) {
+    // quiz stages get their own instruction on the first wave instead of the syllable welcome
+    if (!this.quiz && !introPlayed) {
       introPlayed = true;
       this.bubble('يلّا نبدأ السباق! اسمع الصوت وانطلق إلى البوابة الصحيحة', 6500);
       await say('race/intro', 'هيّا نبدأ السباق');
@@ -379,6 +402,7 @@ export class RaceGame {
     press('.arrow.left', () => this.steer(-1));
     press('.arrow.right', () => this.steer(1));
     press('.horn', () => this.honk());
+    if (this.quiz) q('.speak').setAttribute('aria-label', 'أعد عرض السؤال');
   }
 
   private updateStars() {
@@ -487,14 +511,16 @@ export class RaceGame {
 
   private replay() {
     if (!this.wave || this.paused) return;
-    this.wave.help = Math.max(this.wave.help, 1);
+    // in a quiz the question never leaves the card, so re-showing it is not counted as help
+    if (!this.quiz) this.wave.help = Math.max(this.wave.help, 1);
     this.sayTarget();
   }
 
   private sayTarget() {
     if (!this.wave || this.phase === 'done') return;
     const t = this.wave.target;
-    void say(syllableAudio(t), syllableText(t));
+    // quiz questions are read, not heard: the card just pulses
+    if (!isItem(t)) void say(syllableAudio(t), syllableText(t));
     this.el.card.classList.remove('pulse');
     void this.el.card.offsetWidth;
     this.el.card.classList.add('pulse');
@@ -502,8 +528,19 @@ export class RaceGame {
 
   // ---------- game flow ----------
 
-  private pickTarget(): Syllable {
+  private pickTarget(): Target {
     const s = this.o.stage;
+    if (isQuizStage(s)) {
+      // a fresh shuffle of the stage's items; it only refills if a stage has fewer items than rounds
+      if (!this.queue.length) {
+        const last = this.recent[this.recent.length - 1];
+        this.queue = shuffle([...s.items]);
+        if (this.queue.length > 1 && this.queue[this.queue.length - 1].q === last) this.queue.unshift(this.queue.pop()!);
+      }
+      const item = this.queue.pop()!;
+      this.recent.push(item.q);
+      return item;
+    }
     let t: Syllable;
     let guard = 0;
     do {
@@ -513,13 +550,34 @@ export class RaceGame {
     return t;
   }
 
-  private layoutGates(target: Syllable): Gate[] {
-    const opts = this.o.stage.harakat.map((h) => ({ letter: target.letter, haraka: h }));
+  private layoutGates(target: Target): Gate[] {
+    const s = this.o.stage;
+    let opts: { label: string; ok: boolean }[];
+    if (isItem(target)) {
+      // options[0] is the right answer; the lane shuffle below mixes the order
+      opts = target.options.slice(0, 3).map((label, i) => ({ label, ok: i === 0 }));
+    } else {
+      const harakat = isQuizStage(s) ? [] : s.harakat;
+      opts = harakat.map((h) => {
+        const syl = { letter: target.letter, haraka: h };
+        return { label: syllableText(syl), ok: syllableKey(syl) === syllableKey(target) };
+      });
+    }
     const lanes = shuffle([-1, 0, 1]);
-    return lanes.map((lane, i) => ({ lane, syl: opts[i] ?? null, wobble: 0 })).sort((a, b) => a.lane - b.lane);
+    return lanes
+      .map((lane, i) => ({ lane, label: opts[i]?.label ?? null, ok: opts[i]?.ok ?? false, wobble: 0 }))
+      .sort((a, b) => a.lane - b.lane);
   }
 
-  private spawnWave(target?: Syllable, dist = SPAWN) {
+  /** Put the question (quiz) or the syllable on the HUD card. */
+  private showTarget(t: Target) {
+    const text = isItem(t) ? t.q : syllableText(t);
+    this.el.syl.textContent = text;
+    // longer questions drop a size so they stay within two lines
+    if (this.quiz) this.el.card.classList.toggle('long', text.replace(/[ً-ْٰـ]/g, '').length > 10);
+  }
+
+  private spawnWave(target?: Target, dist = SPAWN) {
     const t = target ?? this.pickTarget();
     const w: Wave = {
       zw: this.travel + dist,
@@ -531,8 +589,14 @@ export class RaceGame {
       spawnedAt: performance.now(),
     };
     this.wave = w;
-    this.el.syl.textContent = syllableText(t);
+    this.showTarget(t);
     setTimeout(() => this.sayTarget(), target ? 300 : 500);
+    if (this.quiz && !target && this.round === 0) {
+      // first quiz wave: Shamma explains the game while the gates approach
+      const line = 'g4/quiz-intro';
+      this.bubble(G4_LINES[line], 6000);
+      setTimeout(() => this.phase === 'drive' && !this.paused && void say(line, G4_LINES[line]), 300);
+    }
   }
 
   /** A short trail of coins in one lane: optional fun between gates. */
@@ -543,14 +607,14 @@ export class RaceGame {
 
   private judge(w: Wave) {
     const gate = w.gates.find((g) => g.lane === this.lane)!;
-    const correct = !!gate.syl && syllableKey(gate.syl) === syllableKey(w.target);
+    const correct = gate.ok;
     w.tries++;
     logAttempt({
       child: this.o.child,
-      activity: 'vowel-race',
+      activity: this.quiz ? 'g4-quiz' : 'vowel-race',
       stage: this.o.stage.id,
-      item: syllableText(w.target),
-      answer: gate.syl ? syllableText(gate.syl) : 'none',
+      item: isItem(w.target) ? w.target.q : syllableText(w.target),
+      answer: gate.label ?? 'none',
       correct,
       help: w.help,
       tries: w.tries,
@@ -613,9 +677,13 @@ export class RaceGame {
       const done = () => (this.voiceDone = true);
       if (w.tries >= 2) {
         w.help = 2;
-        this.bubble('استمع جيدًا… البوابة المضيئة هي الصحيحة!', 4800);
+        this.bubble(this.quiz ? 'البوابة المضيئة هي الصحيحة!' : 'استمع جيدًا… البوابة المضيئة هي الصحيحة!', 4800);
         void say('race/hint', 'البوابة المضيئة هي الصحيحة').then(done);
-      } else if (gate.syl) {
+      } else if (gate.label && this.quiz) {
+        const line = 'g4/quiz-wrong';
+        this.bubble(G4_LINES[line], 4800);
+        void say(line, G4_LINES[line]).then(done);
+      } else if (gate.label) {
         this.bubble('لا بأس! لنجرّبها مرة أخرى… أنت تستطيع!', 4800);
         void say('race/retry', 'لنجربها مرة أخرى').then(done);
       } else {
@@ -664,7 +732,7 @@ export class RaceGame {
     this.phaseT += dt;
     this.hornCool = Math.max(0, this.hornCool - dt);
     this.boost = Math.max(0, this.boost - dt / 1.8);
-    const cruise = SPEED[this.o.mode];
+    const cruise = this.cruise;
     const target = cruise * (1 + 0.9 * Math.sin(Math.min(1, this.boost) * Math.PI * 0.5));
 
     if (this.phase === 'ready') {
@@ -1118,7 +1186,7 @@ export class RaceGame {
     const { ctx } = this;
     const z = w.zw - this.travel;
     if (z < 0.35) return;
-    if (!g.syl) {
+    if (!g.label) {
       for (const dx of [-0.28, 0, 0.28]) this.sprite('bush.png', g.lane + dx, z, 0.5);
       return;
     }
@@ -1128,7 +1196,7 @@ export class RaceGame {
     const wp = GATE_W * p.s;
     const hp = (wp * im.naturalHeight) / im.naturalWidth;
     const fog = Math.min(0.6, Math.max(0, (z - 14) / 60));
-    const hint = w === this.wave && w.help >= 2 && syllableKey(g.syl) === syllableKey(w.target);
+    const hint = w === this.wave && w.help >= 2 && g.ok;
     if (hint) {
       // a glowing path on the road from the car to the right gate
       const a = this.proj(g.lane - 0.42, z);
@@ -1157,20 +1225,66 @@ export class RaceGame {
     }
     ctx.drawImage(im, -wp / 2, -hp, wp, hp);
     ctx.shadowBlur = 0;
-    // the syllable on the ivory panel — always live text, never part of the image
-    const fs = hp * 0.27;
-    ctx.font = `700 ${fs}px "Noto Naskh Arabic", serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.direction = 'rtl';
-    ctx.fillStyle = '#1f2a33';
-    ctx.fillText(syllableText(g.syl), 0, -hp * 0.62);
+    if (this.quiz) this.drawWordPlate(g.label, wp, hp, hint);
+    else {
+      // the syllable on the ivory panel — always live text, never part of the image
+      const fs = hp * 0.27;
+      ctx.font = `700 ${fs}px "Noto Naskh Arabic", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.direction = 'rtl';
+      ctx.fillStyle = '#1f2a33';
+      ctx.fillText(g.label, 0, -hp * 0.62);
+    }
     if (g.wobble > 0) {
       ctx.globalAlpha = g.wobble * 0.35;
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(-wp * 0.28, -hp * 0.5, wp * 0.56, hp * 0.5);
     }
     ctx.restore();
+  }
+
+  /**
+   * A quiz word on a white sign hung across the arch (gate-local coordinates, origin at the gate's feet).
+   * The sign may reach past the ivory panel (lanes are 0.89 gate-widths apart, so neighbours never touch);
+   * the word is as big as the sign's height allows and shrinks only when it is too wide.
+   */
+  private drawWordPlate(text: string, wp: number, hp: number, hint: boolean) {
+    const { ctx } = this;
+    const font = (px: number) => `700 ${px}px "Noto Naskh Arabic", serif`;
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = font(100);
+    const w100 = ctx.measureText(text).width || 100;
+    const fs = Math.min(hp * 0.22, (wp * 0.72 * 100) / w100);
+    const pw = Math.min(wp * 0.8, Math.max(wp * 0.56, (w100 * fs) / 100 + fs * 0.9));
+    const ph = fs * 1.6;
+    const cy = -hp * 0.64;
+    const x0 = -pw / 2;
+    const y0 = cy - ph / 2;
+    const r = ph * 0.28;
+    ctx.beginPath();
+    ctx.moveTo(x0 + r, y0);
+    ctx.arcTo(x0 + pw, y0, x0 + pw, y0 + ph, r);
+    ctx.arcTo(x0 + pw, y0 + ph, x0, y0 + ph, r);
+    ctx.arcTo(x0, y0 + ph, x0, y0, r);
+    ctx.arcTo(x0, y0, x0 + pw, y0, r);
+    ctx.closePath();
+    ctx.shadowColor = hint ? 'rgba(255, 214, 90, 0.95)' : 'rgba(0, 0, 0, 0.28)';
+    ctx.shadowBlur = hint ? fs * 0.8 : fs * 0.25;
+    ctx.shadowOffsetY = hint ? 0 : fs * 0.08;
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.lineWidth = Math.max(1, fs * (hint ? 0.14 : 0.07));
+    ctx.strokeStyle = hint ? '#ffc428' : '#c9a24a';
+    ctx.stroke();
+    ctx.font = font(fs);
+    ctx.fillStyle = '#1f2a33';
+    ctx.fillText(text, 0, cy + fs * 0.04);
   }
 
   private drawPuffs() {
@@ -1193,7 +1307,7 @@ export class RaceGame {
     const hp = CAR_W * p.s * (this.H > this.W ? 0.98 : 0.8);
     const wp = (hp * im.naturalWidth) / im.naturalHeight;
     const moving = this.speed > 0.5 && !this.o.reducedMotion;
-    const rumble = moving ? Math.sin(this.time * 41) * 0.3 * (this.speed / SPEED[this.o.mode]) : 0;
+    const rumble = moving ? Math.sin(this.time * 41) * 0.3 * (this.speed / this.cruise) : 0;
     const bounce = this.o.reducedMotion ? 0 : this.susp * 4;
     const roll = this.o.reducedMotion ? 0 : -slip * 0.06;
     // squat on hard acceleration, nose dip on braking

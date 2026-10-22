@@ -1,0 +1,40 @@
+/* «سباق الحركات» quiz mode: the HUD card carries a short question instead of one syllable.
+   The card stays right of the stars pill (≤ half the screen minus the pill) and wraps to two lines. */
+
+.race-quiz .target .card {
+  min-width: 140px;
+  max-width: max(140px, min(340px, calc(50vw - 240px)));
+  height: auto;
+  min-height: 96px;
+  padding: 6px 18px;
+}
+
+.race-quiz .target .syl {
+  font-size: 30px;
+  line-height: 1.35;
+  white-space: normal;
+  text-align: center;
+  overflow-wrap: break-word;
+  padding-bottom: 2px;
+}
+
+.race-quiz .target .card.long .syl {
+  font-size: 26px;
+}
+
+@media (max-width: 600px) {
+  /* between the pause button and the speak button, above the stars pill (top: 82px) */
+  .race-quiz .target .card {
+    min-width: 110px;
+    max-width: calc(100vw - 150px);
+    min-height: 66px;
+    padding: 4px 10px;
+  }
+  .race-quiz .target .syl {
+    font-size: 23px;
+    line-height: 1.25;
+  }
+  .race-quiz .target .card.long .syl {
+    font-size: 20px;
+  }
+}

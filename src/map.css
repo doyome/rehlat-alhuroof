@@ -477,3 +477,170 @@
     max-width: 720px;
   }
 }
+
+/* ---------- level picker ---------- */
+
+.tracks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.track {
+  border: 3px solid transparent;
+  border-radius: 20px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--teal);
+  display: grid;
+  gap: 2px;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s;
+}
+
+.track b {
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.track small {
+  font-size: 15px;
+  font-weight: 600;
+  color: #6b4a1f;
+}
+
+.track.sel {
+  background: linear-gradient(135deg, #fff6d8, #ffe08a);
+  border-color: var(--gold);
+  transform: translateY(-3px);
+}
+
+.track.g4.sel {
+  background: linear-gradient(135deg, #e9ddff, #ffd1e8);
+  border-color: #8f5cf7;
+}
+
+/* ---------- grade-4 island art ---------- */
+
+.art-tag {
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  translate: -50% 0;
+  white-space: nowrap;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(22px, 5.5vw, 34px);
+  color: #fff;
+  background: rgba(15, 107, 120, 0.85);
+  border: 3px solid var(--gold);
+  border-radius: 16px;
+  padding: 0 16px;
+}
+
+.art-sort {
+  background: linear-gradient(160deg, #6fd3c1, #2b8fd6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 5%;
+  padding-bottom: 6%;
+}
+
+.art-sort span {
+  width: 24%;
+  height: 46%;
+  border-radius: 10px 10px 16px 16px;
+  display: grid;
+  place-items: start center;
+  padding-top: 4%;
+  font-size: clamp(18px, 4.5vw, 28px);
+  font-weight: 800;
+  color: #fff;
+  box-shadow: inset 0 -10px 0 rgba(0, 0, 0, 0.18);
+}
+
+.art-sort span:nth-child(1) {
+  background: #ff7a59;
+}
+
+.art-sort span:nth-child(2) {
+  background: #8f5cf7;
+}
+
+.art-sort span:nth-child(3) {
+  background: #ffb020;
+}
+
+.art-sort b {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  translate: -50% 0;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(28px, 7vw, 46px);
+  background: #fff;
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 0 18px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.15);
+  animation: fly 2.4s ease-in-out infinite;
+}
+
+.art-build {
+  background: linear-gradient(135deg, #ffb45e, #ff6f91);
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: center;
+  justify-content: center;
+  gap: 3%;
+}
+
+.art-build span {
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(22px, 5.5vw, 36px);
+  background: #fffaf0;
+  color: var(--ink);
+  border-radius: 14px;
+  padding: 2px 12px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.18);
+}
+
+.art-build span:nth-child(2) {
+  translate: 0 -14px;
+  rotate: 4deg;
+}
+
+.art-build span:nth-child(1) {
+  rotate: -5deg;
+}
+
+.art-read {
+  background: radial-gradient(circle at 70% 30%, #fff1c9, #f2c27c);
+}
+
+.art-read .a {
+  height: 66%;
+  left: 10%;
+  top: 14%;
+}
+
+.art-read .kid {
+  position: absolute;
+  height: 58%;
+  aspect-ratio: 1;
+  right: 30%;
+  top: 12%;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  border: 5px solid #fff;
+}
+
+.art-read b {
+  position: absolute;
+  right: 6%;
+  bottom: 10%;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-size: clamp(32px, 8vw, 54px);
+  color: #7a3e12;
+}

@@ -17,6 +17,11 @@ import { TraceGame, preloadTrace } from './trace/game';
 import { FirstSoundGame, preloadFirstSound } from './firstsound/game';
 import { FactoryGame, preloadFactory } from './factory/game';
 import { DictationGame, preloadDictation } from './dictation/game';
+import { G4_DICTATION_STAGES } from './data/dictation';
+import { BUILD_STAGES, QUIZ_STAGES, ROLE_STAGES, SORT_STAGES, STORIES } from './data/g4';
+import { SortGame, preloadSort } from './sort/game';
+import { BuilderGame, preloadBuilder } from './builder/game';
+import { ReadingGame, preloadReading } from './reading/game';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -56,8 +61,17 @@ interface Common {
   onNext: () => void;
 }
 
+/** A world is a level the child plays at; each child remembers their own. */
+const TRACKS = [
+  { id: 'letters', name: 'عالم الحروف', sub: 'روضة وصف أول' },
+  { id: 'g4', name: 'الصف الرابع', sub: 'قواعد وإملاء وقراءة' },
+] as const;
+type TrackId = (typeof TRACKS)[number]['id'];
+const DEFAULT_TRACK: Record<string, TrackId> = { salem: 'g4', raya: 'g4', shamma: 'letters' };
+
 interface Island {
   id: string;
+  track: TrackId;
   title: string;
   place: string;
   /** one line telling the parent what the island trains */
@@ -75,6 +89,7 @@ const known = (child: string) => (PLAYERS.some((p) => p.id === child) ? child : 
 const ISLANDS: Island[] = [
   {
     id: 'trace',
+    track: 'letters',
     title: 'مشغل الحروف',
     place: 'جزيرة القلم',
     skill: 'كتابة الحروف بالإصبع',
@@ -87,6 +102,7 @@ const ISLANDS: Island[] = [
   },
   {
     id: 'fish',
+    track: 'letters',
     title: 'الصيّاد',
     place: 'بحر الحروف',
     skill: 'التعرّف على الحروف بالشكل والسمع',
@@ -100,6 +116,7 @@ const ISLANDS: Island[] = [
   },
   {
     id: 'race',
+    track: 'letters',
     title: 'سباق الحركات',
     place: 'وادي الحركات',
     skill: 'قراءة الحرف مع الفتحة والضمة والكسرة',
@@ -112,6 +129,7 @@ const ISLANDS: Island[] = [
   },
   {
     id: 'first',
+    track: 'letters',
     title: 'مكتب البريد',
     place: 'مدينة الأصوات',
     skill: 'سماع أول صوت في الكلمة',
@@ -124,6 +142,7 @@ const ISLANDS: Island[] = [
   },
   {
     id: 'factory',
+    track: 'letters',
     title: 'مصنع الكلمات',
     place: 'جبل التركيب',
     skill: 'تركيب الكلمة من حروفها',
@@ -137,6 +156,7 @@ const ISLANDS: Island[] = [
   },
   {
     id: 'dict',
+    track: 'letters',
     title: 'تحدّي الإملاء',
     place: 'قلعة الإملاء',
     skill: 'كتابة الكلمة كاملة بعد سماعها',
@@ -147,8 +167,93 @@ const ISLANDS: Island[] = [
       return new DictationGame(app, { ...c, stage: DICTATION_STAGES[i] });
     },
   },
+  // ---------- grade 4: grammar, vocabulary, spelling, sentences, reading ----------
+  {
+    id: 'g4-sort',
+    track: 'g4',
+    title: 'مكتب الفرز',
+    place: 'جزيرة القواعد',
+    skill: 'تصنيف الكلمات والجمل: اسم وفعل وحرف، المفرد والجمع، الضمائر',
+    stages: SORT_STAGES,
+    art: () => `<div class="art-sort"><span>اسم</span><span>فعل</span><span>حرف</span><b>كَتَبَ</b></div>`,
+    start: async (i, c) => {
+      await loading(preloadSort());
+      return new SortGame(app, { ...c, stage: SORT_STAGES[i] });
+    },
+  },
+  {
+    id: 'g4-race',
+    track: 'g4',
+    title: 'سباق المعاني',
+    place: 'وادي المعاني',
+    skill: 'الأضداد والمترادفات والجمع والمثنّى والإملاء',
+    stages: QUIZ_STAGES,
+    art: (child) => `<div class="art-photo" style="background-image:url('${BASE}assets/race/cover_${known(child)}.jpg')"><b class="art-tag">طويل ⇄ قصير</b></div>`,
+    start: async (i, c) => {
+      await loading(preloadRace(QUIZ_STAGES[i]));
+      return new RaceGame(app, { ...c, stage: QUIZ_STAGES[i], mode: state.mode, reducedMotion: false });
+    },
+  },
+  {
+    id: 'g4-fish',
+    track: 'g4',
+    title: 'صيد الإعراب',
+    place: 'بحر الجمل',
+    skill: 'الفعل والفاعل والمفعول به والمبتدأ والخبر والجار والمجرور',
+    stages: ROLE_STAGES,
+    art: (child) =>
+      `<div class="art-photo" style="background-image:url('${BASE}assets/fish/scene.jpg')"><img class="boat" src="${BASE}assets/fish/boat_${known(child)}.png" alt=""><b class="art-tag">اصطد الفاعل</b></div>`,
+    start: async (i, c) => {
+      await loading(preloadFish(c.child, ROLE_STAGES[i]));
+      return new FishGame(app, { ...c, stage: ROLE_STAGES[i] });
+    },
+  },
+  {
+    id: 'g4-build',
+    track: 'g4',
+    title: 'ورشة الجمل',
+    place: 'جبل الجمل',
+    skill: 'ترتيب الكلمات في جمل صحيحة',
+    stages: BUILD_STAGES,
+    art: () => `<div class="art-build"><span>الدَّرْسَ</span><span>الطّالِبُ</span><span>كَتَبَ</span></div>`,
+    start: async (i, c) => {
+      await loading(preloadBuilder());
+      return new BuilderGame(app, { ...c, stage: BUILD_STAGES[i] });
+    },
+  },
+  {
+    id: 'g4-read',
+    track: 'g4',
+    title: 'مكتبة راية',
+    place: 'واحة القصص',
+    skill: 'قراءة القصص وفهمها',
+    stages: STORIES,
+    art: () => `<div class="art-read">${sticker('kitab', 'a')}<img class="kid" src="${BASE}assets/chars/raya_face.png" alt=""><b>قصص</b></div>`,
+    start: async (i, c) => {
+      await loading(preloadReading(STORIES[i]));
+      return new ReadingGame(app, { ...c, story: STORIES[i] });
+    },
+  },
+  {
+    id: 'g4-dict',
+    track: 'g4',
+    title: 'الإملاء المتقدّم',
+    place: 'قلعة الإملاء',
+    skill: 'التاء والألف اللينة والهمزة وال الشمسية والقمرية',
+    stages: G4_DICTATION_STAGES,
+    art: () => `<div class="art-dict">${sticker('risha', 'b')}<b>مُسْتَشْفى</b></div>`,
+    start: async (i, c) => {
+      await loading(preloadDictation(G4_DICTATION_STAGES[i]));
+      return new DictationGame(app, { ...c, stage: G4_DICTATION_STAGES[i] });
+    },
+  },
 ];
 const ISLAND = new Map(ISLANDS.map((s) => [s.id, s]));
+
+const trackOf = (child: string): TrackId => {
+  const t = pref(`track.${child}`, DEFAULT_TRACK[child] ?? 'letters');
+  return TRACKS.some((k) => k.id === t) ? (t as TrackId) : 'letters';
+};
 
 const state = {
   child: pref('child', 'salem'),
@@ -185,9 +290,13 @@ function playerChips() {
 function home() {
   game?.destroy();
   game = null;
-  if (state.island) return islandScreen(ISLAND.get(state.island)!);
+  const open = ISLAND.get(state.island);
+  // an island from the other level (another child picked) is not opened
+  if (open && open.track === trackOf(state.child)) return islandScreen(open);
   app.className = 'home map';
-  const all = ISLANDS.map(progress);
+  const track = trackOf(state.child);
+  const islands = ISLANDS.filter((is) => is.track === track);
+  const all = islands.map(progress);
   const totalStars = all.reduce((a, p) => a + p.stars, 0);
   app.innerHTML = `
     <div class="sea"><i></i><i></i><i></i></div>
@@ -198,9 +307,15 @@ function home() {
       </header>
       <h2>من يلعب؟</h2>
       ${playerChips()}
+      <h2>المستوى</h2>
+      <div class="tracks">
+        ${TRACKS.map(
+          (t) => `<button class="track ${t.id} ${t.id === track ? 'sel' : ''}" data-track="${t.id}"><b>${t.name}</b><small>${t.sub}</small></button>`,
+        ).join('')}
+      </div>
       <h2>خريطة الجزر</h2>
       <ol class="islands">
-        ${ISLANDS.map((is, k) => {
+        ${islands.map((is, k) => {
           const p = all[k];
           const pct = Math.round((p.done / p.total) * 100);
           return `<li><button class="island ${is.id} ${is.id === state.last ? 'last' : ''}" data-island="${is.id}">
@@ -225,6 +340,12 @@ function home() {
     <img class="home-hero" src="${BASE}assets/chars/${state.child}_body.png" alt="">`;
 
   bindPlayers();
+  app.querySelectorAll<HTMLButtonElement>('.track').forEach((b) =>
+    b.addEventListener('click', () => {
+      setPref(`track.${state.child}`, b.dataset.track!);
+      home();
+    }),
+  );
   app.querySelectorAll<HTMLButtonElement>('.island[data-island]').forEach((b) =>
     b.addEventListener('click', () => {
       state.island = b.dataset.island!;

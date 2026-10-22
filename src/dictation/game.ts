@@ -8,7 +8,8 @@ import { play, preloadAudio, say, sfx } from '../audio';
 import { logAttempt } from '../progress';
 import { GameShell } from '../core/shell';
 import { LETTER, LETTERS, WORDS, letterNameAudio, wordAudio, wordImage, type Word } from '../data/arabic';
-import { DICTATION_AUDIO, type DictationStage } from '../data/dictation';
+import { DICTATION_AUDIO, G4_DICTATION_AUDIO, type DictationStage } from '../data/dictation';
+import { SPELL_WORDS, spellAudio } from '../data/g4';
 
 const BASE = import.meta.env.BASE_URL;
 
@@ -21,6 +22,10 @@ export interface DictationOptions {
 }
 
 const WORD = new Map(WORDS.map((w) => [w.id, w]));
+/** grade-4 spelling words in the picture-word shape (no pictures; their audio lives under g4w/) */
+const G4_WORD = new Map(SPELL_WORDS.map((w) => [w.id, { id: w.id, text: w.text, spell: w.spell, meaning: '' } as Word]));
+const G4_IDS = new Set(G4_WORD.keys());
+const audioOf = (w: Word) => (G4_IDS.has(w.id) && !WORD.has(w.id) ? spellAudio(SPELL_WORDS.find((s) => s.id === w.id)!) : wordAudio(w));
 /** hamza seats, taa marbuta and alif maqsura: the letters a word is written with beyond the 28 */
 const EXTRA = ['ة', 'أ', 'إ', 'ئ', 'ؤ', 'ء', 'ى'];
 const KEYS = new Set([...LETTERS.map((l) => l.char), ...EXTRA]);
@@ -47,9 +52,9 @@ const imageOk = (id: string) => {
   return !!im?.complete && im.naturalWidth > 0;
 };
 
-export function preloadDictation() {
+export function preloadDictation(stage?: DictationStage) {
   return Promise.all([
-    preloadAudio(DICTATION_AUDIO),
+    preloadAudio(stage?.bank === 'g4' ? [...DICTATION_AUDIO, ...G4_DICTATION_AUDIO] : DICTATION_AUDIO),
     document.fonts.load('700 80px "Noto Naskh Arabic"', 'أبجد'),
     document.fonts.load('800 24px "Baloo Bhaijaan 2"', 'تحقق'),
     ...WORDS.map((w) => loadImg(w.id)),
@@ -127,7 +132,7 @@ export class DictationGame {
   }
 
   private pickWords(st: DictationStage) {
-    const pool = st.words.map((id) => WORD.get(id)).filter((w): w is Word => !!w);
+    const pool = st.words.map((id) => (st.bank === 'g4' ? G4_WORD : WORD).get(id)).filter((w): w is Word => !!w);
     const shuffled = [...pool].sort(() => Math.random() - 0.5);
     return Array.from({ length: st.rounds }, (_, i) => shuffled[i % shuffled.length]);
   }
@@ -229,7 +234,7 @@ export class DictationGame {
     if (this.dead || this.shell.done || !this.word) return;
     this.help = Math.max(this.help, 1);
     this.shell.pulseCard();
-    void this.talk(wordAudio(this.word), this.word.text);
+    void this.talk(audioOf(this.word), this.word.text);
   }
 
   // ---------- input ----------
@@ -311,13 +316,15 @@ export class DictationGame {
     if (!this.introDone) {
       this.introDone = true;
       this.shell.bubble('تحدّي الإملاء! استمع إلى الكلمة واكتبها', 4200);
-      await this.talk('dict/intro', 'تحدّي الإملاء! استمع إلى الكلمة واكتبها');
+      await (this.o.stage.bank === 'g4'
+        ? this.talk('g4/spell-intro', 'استمع إلى الكلمة واكتبها بإملاء صحيح')
+        : this.talk('dict/intro', 'تحدّي الإملاء! استمع إلى الكلمة واكتبها'));
       if (this.dead) return;
       await wait(250);
     }
     if (this.dead || this.shell.done) return;
     this.shell.pulseCard();
-    await this.talk(wordAudio(this.word), this.word.text);
+    await this.talk(audioOf(this.word), this.word.text);
   }
 
   private async check() {
@@ -326,7 +333,7 @@ export class DictationGame {
     if (!this.letters.some(Boolean)) {
       // nothing written yet: say the word again rather than judge an empty line
       this.shell.bubble('استمع واكتب الكلمة', 2200);
-      void this.talk(wordAudio(this.word), this.word.text);
+      void this.talk(audioOf(this.word), this.word.text);
       return;
     }
     const spell = this.word.spell;
@@ -387,7 +394,7 @@ export class DictationGame {
     this.shell.burst(x, y, 90);
     this.shell.setTarget(this.word.text);
     this.el.copy.hidden = true;
-    await this.talk(wordAudio(this.word), this.word.text);
+    await this.talk(audioOf(this.word), this.word.text);
     if (this.dead) return;
     const firstTry = this.tries === 1;
     // hearing the word again is part of dictation, so a replay still counts as independent

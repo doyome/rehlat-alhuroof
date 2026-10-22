@@ -1,0 +1,896 @@
+/* ---------- «مكتب الفرز» ---------- */
+/* A bright sorting room in plain CSS: bunting under the ceiling, a conveyor fed by a sorting machine,
+   and colour crates with label plaques standing on the floor. The game sets --head, --sign, --floor,
+   --cw/--ch (card), --bw/--bh (crate), --ph (plaque), --gap, --col and --mach on resize. */
+
+.sort .so {
+  --head: 120px;
+  --sign: 40px;
+  --floor: 26px;
+  --gap: 20px;
+  --col: 300px;
+  --cw: 320px;
+  --ch: 130px;
+  --bw: 140px;
+  --bh: 150px;
+  --ph: 60px;
+  --mach: 120px;
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-rows: var(--head) var(--sign) minmax(0, 1fr) auto var(--floor);
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'head' 'sign' 'line' 'bins' 'floor';
+  background-color: #fff1d6;
+  background-image:
+    radial-gradient(circle, rgba(150, 105, 50, 0.16) 0 2px, transparent 2.6px),
+    linear-gradient(180deg, #fff6e4 0%, #ffe9c4 100%);
+  background-size: 26px 26px, 100% 100%;
+  overflow: hidden;
+}
+
+/* a phone on its side: the belt stands beside the crates (first column = right in RTL) */
+.sort .so.side {
+  grid-template-rows: var(--head) var(--sign) minmax(0, 1fr) var(--floor);
+  grid-template-columns: var(--col) minmax(0, 1fr);
+  grid-template-areas: 'head head' 'sign sign' 'line bins' 'floor floor';
+}
+
+/* ---- ceiling with bunting ---- */
+
+.sort .so-head {
+  grid-area: head;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg, #2e3a78 0%, #4656a8 100%);
+  pointer-events: none;
+}
+
+.sort .so-beams {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0) 0 120px, rgba(255, 255, 255, 0.07) 120px 128px, rgba(0, 0, 0, 0.1) 128px 134px),
+    radial-gradient(ellipse at 50% 120%, rgba(255, 220, 140, 0.35), rgba(255, 220, 140, 0) 60%);
+}
+
+.sort .so-bunting {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  line-height: 0;
+}
+
+.sort .so-bunting svg {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.22));
+}
+
+.sort .so-bunting path:not(:first-child) {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: so-flutter 3.2s ease-in-out infinite alternate;
+}
+
+.sort .so-bunting path:nth-child(odd) {
+  animation-delay: -1.6s;
+}
+
+@keyframes so-flutter {
+  from {
+    transform: rotate(-4deg);
+  }
+  to {
+    transform: rotate(4deg);
+  }
+}
+
+/* ---- wooden beam with the sign ---- */
+
+.sort .so-beam {
+  grid-area: sign;
+  position: relative;
+  z-index: 2;
+  background:
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0) 0 90px, rgba(0, 0, 0, 0.08) 90px 92px),
+    linear-gradient(180deg, #c98a4f 0%, #a3622f 60%, #8a4f22 100%);
+  border-top: 3px solid #e2a96d;
+  box-shadow: 0 6px 10px rgba(80, 40, 10, 0.22);
+  pointer-events: none;
+}
+
+.sort .so-sign {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 18px 4px;
+  background: linear-gradient(180deg, #7a5cf0, #5b3fd0);
+  border: 3px solid #ffd23f;
+  border-radius: 14px;
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(16px, calc(var(--sign) * 0.52), 26px);
+  line-height: 1.3;
+  white-space: nowrap;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.28), inset 0 2px 0 rgba(255, 255, 255, 0.25);
+}
+
+.sort .so-sign svg {
+  width: 1.4em;
+  height: 1em;
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+.sort .so-sign svg rect {
+  stroke: none;
+}
+
+.sort .so-sign svg .a {
+  fill: #ff7a66;
+}
+
+.sort .so-sign svg .b {
+  fill: #5bbcff;
+}
+
+.sort .so-sign svg .c {
+  fill: #5fd47f;
+}
+
+/* ---- the conveyor line ---- */
+
+.sort .so-line {
+  grid-area: line;
+  position: relative;
+  z-index: 3;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+}
+
+.sort .so-belt {
+  position: relative;
+  width: 100%;
+  height: calc(var(--ch) + 40px);
+}
+
+/* the rubber belt and its steel rail */
+.sort .so-belt::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 16px;
+  background: repeating-linear-gradient(90deg, #353a44 0 16px, #4b525e 16px 20px, #353a44 20px 36px);
+  border-top: 3px solid #1f232a;
+  box-shadow: inset 0 3px 4px rgba(0, 0, 0, 0.35);
+}
+
+.sort .so-belt::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 10px;
+  background: linear-gradient(180deg, #c9d2dc, #8893a1);
+  border-bottom: 2px solid #5f6976;
+  box-shadow: 0 6px 10px rgba(80, 50, 20, 0.22);
+}
+
+.sort .so.moving .so-belt::after {
+  animation: so-belt 0.35s linear infinite;
+}
+
+@keyframes so-belt {
+  to {
+    background-position: -36px 0;
+  }
+}
+
+.sort .so-roller {
+  position: absolute;
+  z-index: 1;
+  left: 6px;
+  bottom: 2px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #e1e7ee 0 22%, #6f7782 26% 100%);
+  border: 2px solid #343942;
+}
+
+.sort .so-roller.end {
+  left: auto;
+  right: 6px;
+}
+
+.sort .so.moving .so-roller {
+  animation: so-spin 0.5s linear infinite;
+}
+
+@keyframes so-spin {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+
+/* ---- the sorting machine that feeds the belt ---- */
+
+.sort .so-mach {
+  display: none;
+  position: absolute;
+  z-index: 6;
+  right: 0;
+  bottom: 8px;
+  width: var(--mach);
+  height: calc(var(--ch) * 0.95 + 34px);
+  border-radius: 22px 0 0 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 30%),
+    linear-gradient(90deg, #4a5d8f 0%, #7f97cf 35%, #5d71a6 70%, #44568a 100%);
+  border: 3px solid #2f3b63;
+  border-right: 0;
+  box-shadow: -6px 8px 14px rgba(30, 30, 60, 0.28);
+  pointer-events: none;
+}
+
+.sort .so.has-mach .so-mach {
+  display: block;
+}
+
+/* hazard stripe across the machine */
+.sort .so-mach::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  height: 12%;
+  background: repeating-linear-gradient(-45deg, #ffcc33 0 10px, #2b2b2b 10px 20px);
+  opacity: 0.9;
+}
+
+.sort .so-lamp {
+  position: absolute;
+  left: calc(50% - var(--mach) * 0.11);
+  top: 10%;
+  width: calc(var(--mach) * 0.22);
+  height: calc(var(--mach) * 0.22);
+  border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, #e9ffe9 0 14%, #46d36b 30%, #1f8a3d 100%);
+  border: 3px solid #2f3b63;
+  box-shadow: 0 0 12px 3px rgba(70, 211, 107, 0.55);
+}
+
+.sort .so.moving .so-lamp {
+  background: radial-gradient(circle at 38% 32%, #fff8d8 0 14%, #ffc531 30%, #d98a00 100%);
+  box-shadow: 0 0 16px 6px rgba(255, 197, 49, 0.75);
+  animation: so-blink 0.25s steps(2) infinite;
+}
+
+@keyframes so-blink {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.sort .so-dial {
+  position: absolute;
+  left: 18%;
+  top: 34%;
+  width: calc(var(--mach) * 0.3);
+  height: calc(var(--mach) * 0.3);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0 60%, #dfe5ee 61%);
+  border: 3px solid #2f3b63;
+}
+
+.sort .so-dial b {
+  position: absolute;
+  left: calc(50% - 1.5px);
+  bottom: 50%;
+  width: 3px;
+  height: 42%;
+  border-radius: 2px;
+  background: #e8473a;
+  transform-origin: 50% 100%;
+  transform: rotate(-50deg);
+  transition: transform 0.4s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.sort .so.moving .so-dial b {
+  transform: rotate(60deg);
+}
+
+.sort .so-vents {
+  position: absolute;
+  right: 14%;
+  top: 36%;
+  width: 30%;
+  height: 16%;
+  background: repeating-linear-gradient(180deg, #2f3b63 0 3px, transparent 3px 7px);
+  opacity: 0.55;
+  border-radius: 2px;
+}
+
+/* the dark mouth the cards come out of */
+.sort .so-mouth {
+  position: absolute;
+  left: -3px;
+  bottom: 16px;
+  width: 16px;
+  height: calc(var(--ch) * 0.9);
+  border-radius: 0 8px 8px 0;
+  background: linear-gradient(90deg, #11151f, #2b334a);
+}
+
+/* ---- the card ---- */
+
+.sort .sc {
+  position: absolute;
+  z-index: 4;
+  left: calc(50% - var(--cw) / 2);
+  bottom: 24px;
+  width: var(--cw);
+  height: var(--ch);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  touch-action: none;
+  cursor: grab;
+}
+
+.sort .sc.drag {
+  z-index: 20;
+  cursor: grabbing;
+}
+
+.sort .sc.gone {
+  visibility: hidden;
+}
+
+.sort .sc-face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: calc(var(--ch) * 0.12);
+  border: 3px solid #e8d4a6;
+  background:
+    linear-gradient(90deg, transparent calc(100% - 7%), rgba(232, 72, 72, 0.32) calc(100% - 7%), rgba(232, 72, 72, 0.32) calc(100% - 7% + 2px), transparent calc(100% - 7% + 2px)),
+    repeating-linear-gradient(180deg, transparent 0 calc(var(--ch) * 0.2 - 1px), rgba(63, 127, 224, 0.12) calc(var(--ch) * 0.2 - 1px) calc(var(--ch) * 0.2)),
+    linear-gradient(180deg, #fffefa, #fff4dc);
+  box-shadow: 0 12px 18px rgba(60, 40, 90, 0.26), inset 0 0 0 2px rgba(255, 255, 255, 0.85);
+  transition: box-shadow 0.2s;
+}
+
+/* the violet header band of the index card */
+.sort .sc-face::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 13%;
+  border-radius: calc(var(--ch) * 0.1) calc(var(--ch) * 0.1) 0 0;
+  background: linear-gradient(90deg, #6d50e6, #9a7bff 50%, #6d50e6);
+}
+
+.sort .sc-clip {
+  position: absolute;
+  z-index: 2;
+  left: 7%;
+  top: calc(var(--ch) * -0.12);
+  width: calc(var(--ch) * 0.14);
+  height: calc(var(--ch) * 0.36);
+  fill: none;
+  stroke: #9aa6b5;
+  stroke-width: 3.4;
+  stroke-linecap: round;
+  transform: rotate(8deg);
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
+}
+
+.sort .sc-text {
+  position: absolute;
+  inset: 15% 6% 4%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Noto Naskh Arabic', serif;
+  font-weight: 700;
+  line-height: 1.6;
+  color: var(--ink);
+  text-align: center;
+  direction: rtl;
+  pointer-events: none;
+}
+
+.sort .sc-text span {
+  display: block;
+  white-space: nowrap;
+}
+
+.sort .sc.drag .sc-face {
+  box-shadow: 0 0 0 4px #fff, 0 0 0 8px #9a7bff, 0 26px 28px rgba(60, 40, 90, 0.32);
+}
+
+.sort .sc-face.arrive {
+  animation: sc-arrive 0.9s cubic-bezier(0.2, 0.85, 0.3, 1.05) both;
+}
+
+@keyframes sc-arrive {
+  0% {
+    transform: translateX(var(--from, 100vw)) rotate(2deg);
+  }
+  72% {
+    transform: translateX(-3%) rotate(-1.5deg);
+  }
+  88% {
+    transform: translateX(1%) rotate(0.5deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.sort .sc-face.wobble {
+  animation: sc-wobble 0.5s ease-out;
+}
+
+@keyframes sc-wobble {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  25% {
+    transform: rotate(-4deg) scale(1.03);
+  }
+  55% {
+    transform: rotate(3deg);
+  }
+  80% {
+    transform: rotate(-1.5deg);
+  }
+}
+
+/* ---- crates ---- */
+
+.sort .so-bins {
+  grid-area: bins;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: var(--gap);
+  padding: 0 12px;
+  position: relative;
+  z-index: 1;
+}
+
+.sort .so.side .so-bins {
+  align-self: end;
+}
+
+.sort .bin {
+  position: relative;
+  flex: none;
+  width: var(--bw);
+  height: var(--bh);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  touch-action: none;
+}
+
+.sort .bin.coral {
+  --c: #ff6f59;
+  --c-d: #cf4330;
+  --c-l: #ffa293;
+  --c-in: #8e2a1c;
+}
+
+.sort .bin.sky {
+  --c: #35a2f0;
+  --c-d: #1d6fbf;
+  --c-l: #8fd0ff;
+  --c-in: #134a80;
+}
+
+.sort .bin.lime {
+  --c: #46c06a;
+  --c-d: #278c46;
+  --c-l: #92e6a8;
+  --c-in: #175c2c;
+}
+
+.sort .bin.violet {
+  --c: #a46cf2;
+  --c-d: #7442c4;
+  --c-l: #d2b3ff;
+  --c-in: #4a2785;
+}
+
+/* soft shadow on the floor */
+.sort .bin::after {
+  content: '';
+  position: absolute;
+  left: 6%;
+  right: 6%;
+  bottom: -9px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(60, 40, 20, 0.22);
+  z-index: -1;
+}
+
+.sort .bin-body {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 100%;
+  transition: transform 0.2s;
+}
+
+/* the inside of the crate, seen over the front panel */
+.sort .bin-back {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 7%;
+  height: 26%;
+  border-radius: calc(var(--bw) * 0.06) calc(var(--bw) * 0.06) 0 0;
+  background: linear-gradient(180deg, var(--c-in), var(--c-d));
+  box-shadow: inset 0 6px 8px rgba(0, 0, 0, 0.35);
+}
+
+.sort .bin-pile {
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: 0;
+  height: 34%;
+  pointer-events: none;
+}
+
+/* a sorted card peeking out of the crate */
+.sort .pc {
+  position: absolute;
+  left: calc(22% + var(--x, 0%));
+  bottom: 0;
+  width: 56%;
+  height: 86%;
+  border-radius: 5px;
+  background:
+    linear-gradient(180deg, #8d70ff 0 12%, transparent 12%),
+    repeating-linear-gradient(180deg, transparent 0 7px, rgba(63, 127, 224, 0.18) 7px 8px),
+    #fffdf6;
+  border: 2px solid #e8d4a6;
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.18);
+  transform: rotate(var(--r, 0deg));
+  animation: pc-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+
+.sort .pc:nth-last-child(n + 2) {
+  filter: brightness(0.93);
+}
+
+@keyframes pc-in {
+  from {
+    transform: translateY(70%) rotate(var(--r, 0deg));
+    opacity: 0;
+  }
+  to {
+    transform: rotate(var(--r, 0deg));
+    opacity: 1;
+  }
+}
+
+.sort .bin-front {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22%;
+  bottom: 0;
+  display: block;
+  border-radius: calc(var(--bw) * 0.05) calc(var(--bw) * 0.05) calc(var(--bw) * 0.09) calc(var(--bw) * 0.09);
+  background:
+    repeating-linear-gradient(180deg, transparent 0 calc(var(--bh) * 0.19 - 3px), rgba(0, 0, 0, 0.09) calc(var(--bh) * 0.19 - 3px) calc(var(--bh) * 0.19)),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0%, rgba(255, 255, 255, 0.12) 30%, rgba(255, 255, 255, 0) 60%, rgba(0, 0, 0, 0.12) 100%),
+    linear-gradient(180deg, var(--c-l) 0%, var(--c) 16%, var(--c) 72%, var(--c-d) 100%);
+  border: 3px solid rgba(0, 0, 0, 0.16);
+  box-shadow: inset 0 calc(var(--bh) * -0.05) 0 rgba(0, 0, 0, 0.12), 0 8px 14px rgba(60, 40, 20, 0.2);
+}
+
+/* the rolled rim of the crate */
+.sort .bin-front::before {
+  content: '';
+  position: absolute;
+  left: -4%;
+  right: -4%;
+  top: calc(var(--bh) * -0.035);
+  height: calc(var(--bh) * 0.075);
+  min-height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--c-l), var(--c) 60%, var(--c-d));
+  box-shadow: 0 3px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* help: the right crate shines */
+.sort .bin-front::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: calc(var(--bw) * 0.1);
+  pointer-events: none;
+  opacity: 0;
+}
+
+.sort .bin.glow .bin-front::after {
+  box-shadow: 0 0 0 5px #ffe066, 0 0 32px 14px rgba(255, 214, 70, 0.9);
+  animation: bin-glow 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes bin-glow {
+  from {
+    opacity: 0.45;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.sort .bin-handle {
+  position: absolute;
+  left: 33%;
+  right: 33%;
+  top: 10%;
+  height: 8%;
+  min-height: 7px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #1b1f27, #3a3f4c);
+  box-shadow: inset 0 3px 3px #000, 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+
+.sort .bin-plaque {
+  position: absolute;
+  left: 7%;
+  right: 7%;
+  top: 27%;
+  height: var(--ph);
+  display: grid;
+  place-items: center;
+  border-radius: calc(var(--bw) * 0.07);
+  background: linear-gradient(180deg, #fffdf4, #f4e3bd);
+  border: calc(var(--bw) * 0.018 + 1px) solid #c99a3b;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2), inset 0 -3px 0 rgba(160, 110, 30, 0.15);
+}
+
+/* the two screws holding the plaque */
+.sort .bin-plaque::before,
+.sort .bin-plaque::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 4px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #fff3c4, #b88a2c);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+
+.sort .bin-plaque::before {
+  left: 4px;
+}
+
+.sort .bin-plaque::after {
+  right: 4px;
+}
+
+.sort .bin-plaque b {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: 'Baloo Bhaijaan 2', 'Noto Naskh Arabic', sans-serif;
+  font-weight: 800;
+  line-height: 1.3;
+  color: var(--ink);
+  direction: rtl;
+  text-align: center;
+  padding: 0 10px 2px;
+}
+
+.sort .bin-plaque b span {
+  display: block;
+  white-space: nowrap;
+}
+
+/* how many cards the crate holds */
+.sort .bin-count {
+  position: absolute;
+  z-index: 2;
+  left: -4%;
+  top: 14%;
+  min-width: clamp(26px, calc(var(--bw) * 0.2), 40px);
+  height: clamp(26px, calc(var(--bw) * 0.2), 40px);
+  padding: 0 4px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #fff;
+  border: 3px solid var(--c-d);
+  color: var(--c-d);
+  font-weight: 800;
+  font-size: clamp(14px, calc(var(--bw) * 0.11), 22px);
+  line-height: 1;
+  direction: ltr;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+  transform: scale(0);
+  transition: transform 0.3s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.sort .bin-count.on {
+  transform: scale(1);
+}
+
+.sort .bin-count.pop {
+  animation: bin-count 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+@keyframes bin-count {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.45);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (hover: hover) {
+  .sort .bin:hover .bin-body {
+    transform: translateY(calc(var(--bh) * -0.03));
+  }
+}
+
+.sort .bin.over .bin-body {
+  transform: translateY(calc(var(--bh) * -0.05)) scale(1.06);
+}
+
+.sort .bin.over .bin-back {
+  background: linear-gradient(180deg, #2a2a2a, var(--c-d));
+  box-shadow: inset 0 6px 8px rgba(0, 0, 0, 0.35), 0 0 0 4px #fff;
+}
+
+/* the card was tapped: the crates bob to invite a tap */
+.sort .so.ready .bin-body {
+  animation: bin-ready 0.45s ease-in-out 4 alternate;
+}
+
+.sort .so.ready .bin:nth-child(2) .bin-body {
+  animation-delay: 0.12s;
+}
+
+.sort .so.ready .bin:nth-child(3) .bin-body {
+  animation-delay: 0.24s;
+}
+
+@keyframes bin-ready {
+  to {
+    transform: translateY(calc(var(--bh) * -0.06));
+  }
+}
+
+.sort .bin.got .bin-body {
+  animation: bin-gulp 0.55s ease-out;
+}
+
+@keyframes bin-gulp {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.1, 0.88);
+  }
+  65% {
+    transform: scale(0.96, 1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.sort .bin.nope {
+  animation: bin-shake 0.5s ease-in-out;
+}
+
+@keyframes bin-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-8px) rotate(-3deg);
+  }
+  45% {
+    transform: translateX(7px) rotate(2deg);
+  }
+  70% {
+    transform: translateX(-4px);
+  }
+}
+
+/* ---- floor ---- */
+
+.sort .so-floor {
+  grid-area: floor;
+  position: relative;
+  background: linear-gradient(180deg, #8e99b0, #6c7690);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sort .so-floor::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 7px;
+  background: repeating-linear-gradient(-45deg, #ffcc33 0 12px, #2b2b2b 12px 24px);
+}
+
+/* ---- HUD: the stage question is long, so its card is wide and may take two lines ---- */
+
+.sort .target .card.wide {
+  min-width: 120px;
+  max-width: var(--ask-w, 340px);
+  padding: 0 18px;
+}
+
+.sort .target .card.wide .syl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.45;
+  padding-bottom: 2px;
+  text-align: center;
+}
+
+.sort .target .card.wide .syl span {
+  display: block;
+  white-space: nowrap;
+}
+
+/* not enough room beside centred stars: they sit next to the pause button */
+.sort.stars-left .stars {
+  left: calc(max(14px, env(safe-area-inset-left)) + 72px);
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sort .so-bunting path,
+  .sort .so.ready .bin-body,
+  .sort .so.moving .so-lamp,
+  .sort .so.moving .so-roller,
+  .sort .bin.glow .bin-front::after {
+    animation: none;
+  }
+  .sort .bin.glow .bin-front::after {
+    opacity: 1;
+  }
+}

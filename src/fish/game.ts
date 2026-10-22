@@ -2,20 +2,40 @@
 // One action only: tap the fish. The boat sails over, the hook drops to it and it bites.
 // The boat can also be dragged and poked for fun. Only the letter choice counts for learning.
 // Letter cards stay upright whichever way a fish swims.
+// Role mode (grade 4 grammar, «اصطد الفاعل»…): a sentence sits in a banner over the sky, each fish
+// carries one of its words, and the child catches the word that plays the role on the target card.
 
 import { Music, play, preloadAudio, say, sfx, stopVoice } from '../audio';
 import { logAttempt, saveStage } from '../progress';
 import { FISH_AUDIO, type FishStage, LETTER_NAME, letterNameAudio } from '../data/fish';
+import { G4_LINES, type Role, type RoleSentence, type RoleStage } from '../data/g4';
+import './roles.css';
 
 const BASE = import.meta.env.BASE_URL;
 
 export interface FishOptions {
   child: string;
-  stage: FishStage;
+  stage: FishStage | RoleStage;
   onExit: () => void;
   onRestart: () => void;
   onNext: () => void;
 }
+
+export function isRoleStage(stage: FishStage | RoleStage): stage is RoleStage {
+  return 'role' in stage;
+}
+
+/** what the target card says for each role */
+const ROLE_LABEL: Record<Role, string> = {
+  فعل: 'الفعل',
+  فاعل: 'الفاعل',
+  'مفعول به': 'المفعول به',
+  'حرف جرّ': 'حرف الجرّ',
+  'اسم مجرور': 'الاسم المجرور',
+  مبتدأ: 'المبتدأ',
+  خبر: 'الخبر',
+};
+const WORD_FONT = '"Noto Naskh Arabic", serif';
 
 const ASSET = `${BASE}assets/fish/`;
 const COLORS = ['orange', 'purple', 'yellow', 'mint', 'blue', 'pink'] as const;
@@ -33,9 +53,15 @@ function loadImg(name: string) {
   });
 }
 
-export function preloadFish(child: string) {
+export function preloadFish(child: string, stage?: FishStage | RoleStage) {
   const boat = `boat_${BOAT_KIDS.includes(child) ? child : 'salem'}.png`;
-  return Promise.all([preloadAudio(FISH_AUDIO), loadImg('scene.jpg'), loadImg(boat), ...COLORS.map((c) => loadImg(`fish_${c}.png`))]);
+  const role = !!stage && isRoleStage(stage);
+  // role mode never speaks letter names, so it skips them and loads its own two lines instead
+  const names = new Set(Object.keys(LETTER_NAME).map(letterNameAudio));
+  const audio = role ? [...FISH_AUDIO.filter((k) => !names.has(k)), 'g4/pick-intro', 'g4/pick-wrong'] : FISH_AUDIO;
+  // the words are drawn on canvas, which only uses the font once it has loaded
+  const font = role && document.fonts ? document.fonts.load(`700 32px ${WORD_FONT}`, 'كَتَبَ').catch(() => undefined) : Promise.resolve();
+  return Promise.all([preloadAudio(audio), loadImg('scene.jpg'), loadImg(boat), ...COLORS.map((c) => loadImg(`fish_${c}.png`)), font]);
 }
 
 // where things sit inside scene.jpg / boat images (measured on the artwork)
@@ -64,6 +90,7 @@ interface Fish {
   jx?: number;
   jy?: number;
   ok?: boolean; // judged at the bite
+  right?: boolean; // role mode: this fish carries the word with the role
 }
 
 type HookState = 'idle' | 'drop' | 'wait' | 'reel';
@@ -144,6 +171,12 @@ export class FishGame {
   private done = false;
   private lastCheer = -1;
   private recent: string[] = [];
+  // role mode (null for letter stages)
+  private rs: RoleStage | null = null;
+  private deck: RoleSentence[] = [];
+  private sentence: RoleSentence | null = null;
+  private answer = -1; // index of the word with the role
+  private caughtIdx = -1; // highlighted in the banner after the catch
   // fx
   private sparks: Spark[] = [];
   private bubbles: Bubble[] = [];
@@ -160,8 +193,9 @@ export class FishGame {
   constructor(root: HTMLElement, opts: FishOptions) {
     this.root = root;
     this.o = opts;
+    this.rs = isRoleStage(opts.stage) ? opts.stage : null;
     root.innerHTML = '';
-    root.className = 'fishing';
+    root.className = this.rs ? 'fishing role-mode' : 'fishing';
     this.canvas = document.createElement('canvas');
     this.ctx = this.canvas.getContext('2d')!;
     root.appendChild(this.canvas);
@@ -185,10 +219,27 @@ export class FishGame {
     this.music.start();
     this.ocean.start();
     if (import.meta.env.DEV) (window as unknown as { __fish: FishGame }).__fish = this;
+    // the banner's height depends on the font; lay out again once it is in
+    if (this.rs && document.fonts) void document.fonts.ready.then(() => !this.done && this.resize());
     void this.start();
   }
 
+  /** The letter stage (only called on letter-mode paths). */
+  private get ls() {
+    return this.o.stage as FishStage;
+  }
+
+  /** Is this the fish to catch this round? */
+  private isRight(f: Fish) {
+    return this.rs ? !!f.right : f.letter === this.target;
+  }
+
   private async start() {
+    if (this.rs) {
+      // role mode has its own intro on the first round (the letter intro talks about letters)
+      this.newRound();
+      return;
+    }
     if (!introPlayed) {
       introPlayed = true;
       this.bubble('هيّا نصطاد! استمع إلى الحرف، واصطد السمكة الصحيحة!', 5600);
@@ -229,8 +280,9 @@ export class FishGame {
       </div>
       <div class="tap-hint" hidden>
         <svg viewBox="0 0 64 64"><path d="M26 30V12a4 4 0 0 1 8 0v14l3-1a4 4 0 0 1 5 3l1 1a4 4 0 0 1 6 2v1a4 4 0 0 1 6 3v10c0 9-6 15-15 15h-3c-6 0-10-3-13-8l-8-12a4 4 0 0 1 6-5z" fill="#fff" stroke="#0f6b78" stroke-width="3" stroke-linejoin="round"/></svg>
-        <span>المس السمكة التي تحمل الحرف</span>
+        <span>${this.rs ? `المس السمكة التي تحمل ${ROLE_LABEL[this.rs.role]}` : 'المس السمكة التي تحمل الحرف'}</span>
       </div>
+      ${this.rs ? '<div class="role-banner" dir="rtl" lang="ar"></div>' : ''}
       <div class="bubble"><img src="${BASE}assets/chars/shamma_face.png" alt=""><span></span></div>
       <div class="overlay pause-menu" hidden>
         <div class="panel">
@@ -272,7 +324,14 @@ export class FishGame {
       endLine: q('.end-line'),
       endCoins: q('.end-coins'),
       tapHint: q('.tap-hint'),
+      starsBox: q('.stars'),
+      target: q('.target'),
+      pauseBtn: q('.hud > .pause'),
     };
+    if (this.rs) {
+      this.el.banner = q('.role-banner');
+      this.el.card.classList.add('role');
+    }
     const press = (sel: string, fn: (b: HTMLElement) => void) =>
       h.querySelectorAll<HTMLElement>(sel).forEach((b) =>
         b.addEventListener('pointerdown', (e) => {
@@ -388,7 +447,7 @@ export class FishGame {
     } else if (y > this.surface) {
       // tapping empty water just makes a ripple, and reminds what to do
       this.splash(x, y, 8);
-      if (!this.busy && !best) this.bubble('المس السمكة التي تحمل الحرف', 1800);
+      if (!this.busy && !best) this.bubble(this.rs ? `المس السمكة التي تحمل ${this.target}` : 'المس السمكة التي تحمل الحرف', 1800);
     }
   }
 
@@ -440,14 +499,27 @@ export class FishGame {
 
   private replay() {
     if (this.paused || !this.target) return;
+    if (this.rs) {
+      // re-reading the instruction is not a hint about the word
+      this.pulse();
+      void say('g4/pick-intro', G4_LINES['g4/pick-intro']);
+      return;
+    }
     this.help = Math.max(this.help, 1);
     void this.sayTarget();
   }
 
+  private pulse() {
+    for (const el of [this.el.card, this.el.banner]) {
+      if (!el) continue;
+      el.classList.remove('pulse');
+      void el.offsetWidth;
+      el.classList.add('pulse');
+    }
+  }
+
   private async sayTarget() {
-    this.el.card.classList.remove('pulse');
-    void this.el.card.offsetWidth;
-    this.el.card.classList.add('pulse');
+    this.pulse();
     await say('fish/find', 'أين السمكة التي تحمل حرف');
     if (this.done) return;
     await say(letterNameAudio(this.target), LETTER_NAME[this.target]);
@@ -456,32 +528,58 @@ export class FishGame {
   // ---------- rounds ----------
 
   private pickTarget() {
-    const L = this.o.stage.letters;
+    const L = this.ls.letters;
     let t = L[Math.floor(Math.random() * L.length)];
     for (let g = 0; g < 8 && this.recent.slice(-1).includes(t); g++) t = L[Math.floor(Math.random() * L.length)];
     this.recent.push(t);
     return t;
   }
 
+  /** Next sentence: the stage's sentences in shuffled order, reshuffled only when all were used. */
+  private pickSentence(): RoleSentence {
+    const items = this.rs!.items;
+    if (!this.deck.length) {
+      this.deck = [...items].sort(() => Math.random() - 0.5);
+      // no immediate repeat across a reshuffle
+      if (this.deck.length > 1 && this.deck[this.deck.length - 1] === this.sentence) this.deck.unshift(this.deck.pop()!);
+    }
+    return this.deck.pop()!;
+  }
+
+  /** Role mode: one fish per word of the sentence (2–5 fish); only the word with the role is right. */
+  private roleCards() {
+    const words = this.sentence!.words.map((text, i) => ({ text, right: i === this.answer }));
+    const right = words.filter((w) => w.right);
+    const others = words.filter((w) => !w.right).sort(() => Math.random() - 0.5);
+    return [...right, ...others].slice(0, Math.max(2, Math.min(5, words.length)));
+  }
+
   /** Fill the sea: exactly one fish with the target letter, the rest are other stage letters. */
   private stock() {
-    const n = this.o.stage.fish;
-    const others = this.o.stage.letters.filter((l) => l !== this.target);
-    const letters = [this.target];
-    for (let i = 1; i < n; i++) letters.push(others[(i - 1) % others.length]);
+    let cards: { text: string; right: boolean }[];
+    if (this.rs) cards = this.roleCards();
+    else {
+      const n = this.ls.fish;
+      const others = this.ls.letters.filter((l) => l !== this.target);
+      const letters = [this.target];
+      for (let i = 1; i < n; i++) letters.push(others[(i - 1) % others.length]);
+      cards = letters.map((text) => ({ text, right: text === this.target }));
+    }
+    const n = cards.length;
     const colors = [...COLORS].sort(() => Math.random() - 0.5);
-    const keep = this.fish.filter((f) => f.state === 'jump' || f.state === 'escape');
+    const keep = this.fish.filter((f) => f.state === 'jump' || (f.state === 'escape' && !this.rs));
     this.fish = keep;
     // every fish gets its own depth, spread through the water so none hide behind another
     const ys = Array.from({ length: n }, (_, i) => (i + 0.5) / n).sort(() => Math.random() - 0.5);
-    letters
+    cards
       .sort(() => Math.random() - 0.5)
-      .forEach((letter, i) => {
+      .forEach(({ text: letter, right }, i) => {
         const dir = Math.random() < 0.5 ? -1 : 1;
         const baseY = this.waterY(0.12 + ys[i] * 0.78);
         this.fish.push({
           id: this.nextId++,
           letter,
+          right,
           color: colors[i % colors.length],
           baseY,
           x: this.W * (0.12 + ((i + 0.5) / n) * 0.76) + (Math.random() - 0.5) * this.W * 0.05,
@@ -499,26 +597,90 @@ export class FishGame {
 
   private newRound() {
     if (this.done) return;
+    if (this.rs) {
+      this.newRoleRound(this.rs);
+      return;
+    }
     this.target = this.pickTarget();
     this.tries = 0;
     this.help = 0;
     this.roundStart = performance.now();
-    this.el.syl.textContent = this.o.stage.showCard ? this.target : '؟';
-    this.el.card.classList.toggle('mystery', !this.o.stage.showCard);
+    this.el.syl.textContent = this.ls.showCard ? this.target : '؟';
+    this.el.card.classList.toggle('mystery', !this.ls.showCard);
     this.stock();
     this.busy = false;
     if (this.round === 0 && !this.hinted) setTimeout(() => !this.hinted && !this.done && this.showHint(), 1200);
     void this.sayTarget();
   }
 
+  private newRoleRound(rs: RoleStage) {
+    this.sentence = this.pickSentence();
+    this.answer = this.sentence.roles[rs.role] ?? 0;
+    this.caughtIdx = -1;
+    this.target = ROLE_LABEL[rs.role];
+    this.tries = 0;
+    this.help = 0;
+    this.roundStart = performance.now();
+    this.el.syl.textContent = this.target;
+    this.el.card.classList.remove('mystery');
+    this.renderBanner();
+    this.stock();
+    this.busy = false;
+    this.pulse();
+    if (this.round === 0) {
+      if (!this.hinted) setTimeout(() => !this.hinted && !this.done && this.showHint(), 1200);
+      const line = G4_LINES['g4/pick-intro'];
+      this.bubble(`${line}: ${this.target}`, 5000);
+      void say('g4/pick-intro', line);
+    }
+  }
+
+  /** The sentence banner: one span per word, the caught word underlined with its role under it. */
+  private renderBanner(s: RoleSentence | null = this.sentence) {
+    const b = this.el.banner;
+    if (!b || !this.rs) return;
+    b.replaceChildren(
+      ...(s?.words ?? []).map((word, i) => {
+        const w = document.createElement('span');
+        w.className = 'w';
+        if (s === this.sentence && i === this.caughtIdx) w.classList.add('caught');
+        const t = document.createElement('b');
+        t.textContent = word;
+        const l = document.createElement('small');
+        l.textContent = this.rs!.role;
+        w.append(t, l);
+        return w;
+      }),
+    );
+  }
+
+  /** Place the banner under the top HUD and reserve the height of the stage's longest sentence. */
+  private layoutBanner() {
+    const b = this.el.banner;
+    if (!b || !this.rs) return 0;
+    let top = 0;
+    for (const e of [this.el.target, this.el.starsBox, this.el.bucketBox, this.el.pauseBtn]) top = Math.max(top, e.offsetTop + e.offsetHeight);
+    top += 8;
+    b.style.top = `${top}px`;
+    b.style.minHeight = '';
+    let h = 0;
+    for (const s of this.rs.items) {
+      this.renderBanner(s);
+      h = Math.max(h, b.offsetHeight);
+    }
+    this.renderBanner();
+    b.style.minHeight = `${h}px`;
+    return top + h;
+  }
+
   private judge(f: Fish) {
-    const correct = f.letter === this.target;
+    const correct = this.isRight(f);
     this.tries++;
     logAttempt({
       child: this.o.child,
-      activity: 'letter-fishing',
+      activity: this.rs ? 'role-fishing' : 'letter-fishing',
       stage: this.o.stage.id,
-      item: this.target,
+      item: this.sentence && this.rs ? this.sentence.words.join(' ') : this.target,
       answer: f.letter,
       correct,
       help: this.help,
@@ -545,6 +707,11 @@ export class FishGame {
     sfx.correct();
     play('sfx/plop', 0.8);
     this.burst(f.x, f.y, 70);
+    if (this.rs) {
+      // show the caught word in its sentence, underlined with its role
+      this.caughtIdx = this.answer;
+      this.el.banner?.children[this.answer]?.classList.add('caught');
+    }
     let line: string;
     let text: string;
     if (this.streak === 3 || this.streak === 5) {
@@ -562,7 +729,7 @@ export class FishGame {
     this.bubble(text, 2600);
     void say(line, text).then(() => {
       if (this.round >= this.o.stage.rounds) this.finish();
-      else setTimeout(() => this.newRound(), 500);
+      else setTimeout(() => this.newRound(), this.rs ? 1100 : 500);
     });
   }
 
@@ -572,6 +739,18 @@ export class FishGame {
     play('sfx/escape', 0.8);
     this.splash(f.x, f.y);
     if (this.tries >= 2) this.help = 2;
+    if (this.rs) {
+      const line = G4_LINES['g4/pick-wrong'];
+      this.bubble(line, 3600);
+      await say('g4/pick-wrong', line);
+      if (this.help >= 2) {
+        this.bubble('انظر جيدًا… السمكة اللامعة هي الصحيحة!', 4200);
+        await say('fish/hint', 'السمكة اللامعة هي الصحيحة');
+      }
+      if (this.done) return;
+      this.busy = false;
+      return;
+    }
     this.bubble(`هذا حرف «${f.letter}»… لنبحث عن الحرف الصحيح!`, 4200);
     await say('fish/this-is', 'هذا حرف');
     await say(letterNameAudio(f.letter), LETTER_NAME[f.letter]);
@@ -843,6 +1022,7 @@ export class FishGame {
   // ---------- rendering ----------
 
   private resize() {
+    const old = { surface: this.surface, floor: this.floor };
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     this.W = this.root.clientWidth || window.innerWidth;
     this.H = this.root.clientHeight || window.innerHeight;
@@ -854,7 +1034,22 @@ export class FishGame {
     const ih = im?.naturalHeight || 976;
     const portrait = this.H > this.W;
     // put the waterline low enough that the whole boat shows under the HUD; sky is extended above the art
-    const want = this.H * (portrait ? 0.3 : 0.4);
+    let want = this.H * (portrait ? 0.3 : 0.4);
+    let boatW = Math.min(this.W * (portrait ? 0.6 : 0.32), this.H * 0.62);
+    if (this.rs) {
+      // role mode: the sentence banner sits under the HUD and the boat floats just below it.
+      // The water goes down a little; past a cap the boat gets smaller instead.
+      const top = this.layoutBanner() + 6;
+      const boat = images.get(this.boatName());
+      const k = (boat?.naturalWidth ? boat.naturalHeight / boat.naturalWidth : 0.505) * WATERLINE;
+      const cap = this.H * (portrait ? 0.5 : 0.54);
+      const minW = Math.min(boatW, Math.max(120, this.W * 0.16));
+      if (top + boatW * k <= Math.max(want, cap)) want = Math.max(want, top + boatW * k);
+      else {
+        want = Math.max(want, cap, top + minW * k);
+        boatW = Math.max(minW, Math.min(boatW, (want - top) / k));
+      }
+    }
     const sc = Math.max(this.W / iw, (this.H - want) / ((1 - SURFACE) * ih));
     this.bgW = iw * sc;
     this.bgH = ih * sc;
@@ -863,9 +1058,18 @@ export class FishGame {
     this.surface = want;
     this.floor = Math.min(this.H * 0.88, this.bgY + this.bgH * FLOOR);
     this.fishH = Math.min(this.H * (portrait ? 0.075 : 0.12), this.W * (portrait ? 0.17 : 0.1));
-    this.boatW = Math.min(this.W * (portrait ? 0.6 : 0.32), this.H * 0.62);
+    this.boatW = boatW;
     this.boatTarget = this.clampBoat(this.boatTarget || this.W * 0.42);
     this.boatX = this.clampBoat(this.boatX || this.boatTarget);
+    if (this.rs && old.floor > old.surface && (old.surface !== this.surface || old.floor !== this.floor)) {
+      // the banner moved the waterline: keep each fish at the same depth in the new water column
+      const span = old.floor - old.surface;
+      for (const f of this.fish) {
+        const k = (f.baseY - old.surface) / span;
+        f.y += this.waterY(k) - f.baseY;
+        f.baseY = this.waterY(k);
+      }
+    }
   }
 
   private draw() {
@@ -1008,7 +1212,7 @@ export class FishGame {
     if (!im?.complete || !im.naturalWidth) return;
     const h = this.fishH * (f.state === 'jump' ? 1 - f.t * 0.45 : 1);
     const w = (h * im.naturalWidth) / im.naturalHeight;
-    const target = f.letter === this.target;
+    const target = this.isRight(f);
     const glow = this.help >= 2 && target && !this.done && f.state !== 'escape';
     ctx.save();
     ctx.translate(f.x, f.y);
@@ -1041,6 +1245,11 @@ export class FishGame {
     const cr = h * 0.27;
     const cx = f.state === 'hooked' || f.state === 'jump' ? 0 : -f.dir * w * 0.04;
     const cy = f.state === 'hooked' || f.state === 'jump' ? h * 0.05 : h * 0.06;
+    if (this.rs) {
+      this.drawWordBadge(f.letter, cx, cy, w, h);
+      ctx.restore();
+      return;
+    }
     ctx.fillStyle = '#fffaf0';
     ctx.strokeStyle = 'rgba(120, 90, 40, 0.35)';
     ctx.lineWidth = 2;
@@ -1055,5 +1264,47 @@ export class FishGame {
     ctx.direction = 'rtl';
     ctx.fillText(f.letter, cx, cy + cr * 0.05);
     ctx.restore();
+  }
+
+  /** Role mode: the word on a rounded pill sized to the text; long words shrink to fit. */
+  private drawWordBadge(word: string, cx: number, cy: number, w: number, h: number) {
+    const { ctx } = this;
+    const base = Math.max(15, h * 0.34);
+    ctx.direction = 'rtl';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = `700 ${base}px ${WORD_FONT}`;
+    const m0 = ctx.measureText(word);
+    const maxW = Math.max(w * 1.15, h * 1.9);
+    const fs = m0.width > maxW ? Math.max(base * 0.6, (base * maxW) / m0.width) : base;
+    let tw = m0.width;
+    let m = m0;
+    if (fs !== base) {
+      ctx.font = `700 ${fs}px ${WORD_FONT}`;
+      m = ctx.measureText(word);
+      tw = m.width;
+    }
+    // room above and below for harakat
+    const asc = m.actualBoundingBoxAscent || fs * 0.75;
+    const desc = m.actualBoundingBoxDescent || fs * 0.3;
+    const ph = Math.max(fs * 1.5, asc + desc + fs * 0.4);
+    const pw = Math.max(ph * 1.2, tw + fs * 1.1);
+    const x0 = cx - pw / 2;
+    const y0 = cy - ph / 2;
+    const r = ph / 2;
+    ctx.beginPath();
+    ctx.moveTo(x0 + r, y0);
+    ctx.lineTo(x0 + pw - r, y0);
+    ctx.arc(x0 + pw - r, cy, r, -Math.PI / 2, Math.PI / 2);
+    ctx.lineTo(x0 + r, y0 + ph);
+    ctx.arc(x0 + r, cy, r, Math.PI / 2, (Math.PI * 3) / 2);
+    ctx.closePath();
+    ctx.fillStyle = '#fffaf0';
+    ctx.strokeStyle = 'rgba(120, 90, 40, 0.45)';
+    ctx.lineWidth = 2;
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#1f2a33';
+    ctx.fillText(word, cx, cy + (asc - desc) / 2);
   }
 }
